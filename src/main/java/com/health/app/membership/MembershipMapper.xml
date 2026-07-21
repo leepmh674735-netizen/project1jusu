@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.membership.MembershipMapper">
+
+
+	<select id="list" parameterType="Long"
+		resultType="com.health.app.contract.ContractDTO">
+		SELECT *
+		FROM "h_contract_data"
+		WHERE receiver_id = #{username}
+		AND status = 'ACTIVE'
+		ORDER BY start_date DESC
+	</select>
+
+</mapper>

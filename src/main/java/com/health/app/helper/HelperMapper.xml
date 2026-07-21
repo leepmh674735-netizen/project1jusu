@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.helper.HelperMapper">
+
+	<select id="selectTrainers" resultType="map">
+		SELECT username, name, email
+		FROM "h_member"
+		WHERE gym_id = #{gymId} AND role = 'trainer'
+		ORDER BY name
+	</select>
+
+	<select id="selectComplaintVisitSlots" resultType="map">
+		SELECT slot, count(*) AS cnt
+		FROM (
+			SELECT CASE
+				WHEN extract(hour from ci.check_in) &lt; 6 THEN '새벽(00-06)'
+				WHEN extract(hour from ci.check_in) &lt; 11 THEN '오전(06-11)'
+				WHEN extract(hour from ci.check_in) &lt; 14 THEN '점심(11-14)'
+				WHEN extract(hour from ci.check_in) &lt; 18 THEN '오후(14-18)'
+				WHEN extract(hour from ci.check_in) &lt; 22 THEN '저녁(18-22)'
+				ELSE '야간(22-24)'
+			END AS slot
+			FROM "h_check_inout" ci
+			WHERE ci.gym_id = #{gymId}
+			<choose>
+				<when test="mode == 'monthly'">
+					AND to_char(ci.check_in, 'YYYY-MM') = #{period}
+				</when>
+				<otherwise>
+					AND ci.check_in &gt;= cast(#{period} as date) - interval '30 days'
+					AND ci.check_in &lt;= cast(#{period} as date) + interval '1 day'
+				</otherwise>
+			</choose>
+			AND ci.username IN ( 
+				SELECT distinct r.username
+				FROM "h_churn_result" r
+				JOIN "h_member" m ON r.username = m.username
+				WHERE m.gym_id = #{gymId}
+				AND r.churn_rate &gt;= 0.45
+				AND #{statKey} IN (r.top1_reason, r.top2_reason, r.top3_reason)
+				<choose>
+					<when test="mode == 'monthly'">
+						AND r.churn_date IS NOT NULL AND to_char(r.churn_date, 'YYYY-MM') = #{period}
+					</when>
+					<otherwise>
+						AND r.churn_date = cast(#{period} as date)
+					</otherwise>
+				</choose>
+			)
+		) t
+		GROUP BY slot
+		ORDER BY cnt DESC
+	</select>
+
+	<select id="selectComplaintManagers" resultType="map">
+		SELECT r.username    AS "username",
+		       mem.name        AS "memberName",
+		       mgr.username   AS "memberId",
+		       mgr.name      AS "mangerName",
+		       r.churn_rate   AS  "churnRate"
+		FROM "h_churn_result" r
+		JOIN "h_member" mem ON r.username = mem.username
+		JOIN LATERAL ( 
+			SELECT cd.manager_id
+			FROM "h_content_data" cd
+			WHERE cd.receiver_id = r.username AND cd.manager_id IS NOT NULL AND cd.gym_id = #{gymId}
+			ORDER BY cd.signed_at DESC NULLS LAST, cd.data_id DESC
+			LIMIT 1
+		) latest ON true
+		JOIN "h_member" mgr ON mgr.username = latest.manager_id
+		WHERE mem.gym_id = #{gymId}
+		AND r.churn_rate &gt;= 0.45
+		AND #{statKey} IN (r.top1_reason, r.top2_reason, r.top3_reason)
+		<choose>
+			<when test="mode == 'monthly'">
+				AND r.churn_date IS NOT NULL AND to_char(r.churn_date, 'YYYY-MM') = #{period}
+			</when>
+			<otherwise>
+				AND r.churn_date = cast(#{period} as date)
+			</otherwise>
+		</choose>
+		ORDER BY r.churn_rate DESC
+	</select>
+
+	<select id="selectServiceCenters" resultType="map">
+		SELECT center_id     AS "centerId",
+		       center_name   AS "centerName",
+		       brand_name    AS "brandName",
+		       center_phone  AS "centerPhone",
+		       operationg_hours AS "operationHours",
+		       onsite_repair_status  AS "onsiteRepair",
+		       service_center_url AS "url" 
+		FROM "h_service_center" 
+		ORDER BY center_name
+	</select>
+
+	<insert id="insertRequest">
+		INSERT INTO "h_helper" (username, title, contents, date, status)
+		VALUES (#{username}, '헬퍼 요청', #{contents}, CURRENT_DATE, '처리대기')
+	</insert>
+
+</mapper>

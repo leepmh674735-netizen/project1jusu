@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.payment.PayMapper">
+
+    <select id="findPayableContract" resultType="com.health.app.contract.ContractDTO">
+        SELECT
+            d.data_id as dataId,
+            d.contract,
+            d.gym_id as gymId,
+            d.receiver_id as receiverId,
+            d.receiver_name as receiverName,
+            d.status,
+            d.amount,
+            d.quantity,
+            d.start_date as startDate,
+            d.end_date as endDate
+        FROM "h_contract_data" d
+        WHERE d.data_id = #{dataId}
+          AND d.sender_id = #{username}
+          AND d.status = 'SIGNED'
+          AND d.contract IN (3, 4, 5)
+          AND d.data_id NOT IN (
+              SELECT data_id FROM "h_payment" WHERE data_id IS NOT NULL
+          )
+    </select>
+
+    <insert id="insertPay" parameterType="com.health.app.payment.PayDTO" useGeneratedKeys="true" keyProperty="pId" keyColumn="p_id">
+        INSERT INTO "h_pay" (data_id, username, p_price, coupon_id, p_name, created_at)
+        VALUES (#{dataId}, #{username}, #{pPrice}, #{couponId}, #{pName}, #{createdAt})
+    </insert>
+
+</mapper>

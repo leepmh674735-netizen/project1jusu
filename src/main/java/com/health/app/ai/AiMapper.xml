@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.ai.AiMapper">
+
+
+<insert id="conversationInsert" parameterType="com.health.app.ai.AiConversationDTO"
+useGeneratedKeys="true" keyProperty="conversationId" keyColumn="conversation_id">
+INSERT INTO "h_ai_conversation"(username, gym_id, role, title)
+VALUES (#{username, jdcType=BIGINT}, #{gymId, jdbcType=BIGINT},
+        #{role, jdbcType=VARCHAR}, #{title, jdbcType=VARCHAR})
+</insert>
+
+
+<select id="conversationFind" resultType="com.health.app.ai.AiConversationDTO">
+SELECT conversation_id, username, gym_id, role, title, created_at, updated_at
+FROM "h_ai_Conversation"
+WHERE conversation_id = #{conversationId, jdbcType=BIGINT}
+</select>
+
+
+<select id="conversationList" resultType="com.health.app.ai.AiConversationDTO">
+SELECT conversation_id , username, gym_id, role, title, created_at, updated_at
+FROM "h_ai_conversation"
+WHERE username = #{username, jdcType=BIGINT}
+ORDER BY updated_at DESC
+LIMIT 30
+</select>
+
+
+<update id="conversationTouch">
+UPDATE "h_ai_conversation"
+SET updated_at = now()
+WHERE conversation_id = #{conversationId, jdbcType=BIGINT}
+</update>
+
+
+<insert id="messageInsert" parameterType="conm.health.app.ai.AiMessageDTO"
+useGeneratedKeys="true" keyProperty="messageId" keyColumn="message_id">
+INSER INTO "h_ai_message"
+(conversation_id, role, content, tool_name, tool_args, tool_result, token_in , token_out)
+VALUES
+(#{conversationId, jdbcType=BIGINT}, #{role, jdbType=VARCHAR},
+#{content, jdbcType=VARCHAR}, #{toolName, jdbcType=VARCHAR},
+CAST(#{toolArgs, jdbcType=VARCHAR} AS jsonb),
+CAST(#{toolResult, jdbcType=VARCHAR} AS jsonb),
+#{tokenIn, jdbcType=BIGINT}, #{tokenOut, jdbcType=BIGINT})
+</insert>
+
+
+<select id="messageList" resultType="com.health.app.ai.AiMessageDTO">
+SELECT message_id, conversation_id, role, content, tool_name,
+     tool_args::text AS tool_args, tool_result::text AS tool_result,
+     token_in, token_out, created_at
+     FROM "h_ai_message"
+     WHERE conversation_id = #{conversationId, jdbcType=BIGINT}
+     ORDER BY message_id ASC
+</select>
+
+
+<insert id="auditInsert" parameterType="com.health.app.ai.AiToolAuditDTO"
+useGeneratedKeys="true" keyProperty="auidtId" keyColumn="audit_id">
+INSERT INTO "h_ai_tool_audit"
+(conversation_id, message_id, username, gym_id, tool_name,
+classification, params, status, reuslt_summary, error)
+VALUES
+  (#{conversationId, jdbType=BIGINT}, #{messageId, gym_id, jdbcType=BIGINT},
+  #{username, jdbcType=BIGINT}, #{gymId, jdbcType=BIGINT},
+  #{toolName, jdbType=VARCHAR}, #{classification, jdbcType=VARCHAR},
+  CAST(#{params, jdbType=VACHAR} AS jsonb),
+  #{status, jdbcType=VACHAR}, #{resultSummary, jdbcType=VARCHAR},
+  #{error, jdbcType=VACHAR})
+</insert>
+
+</mapper>

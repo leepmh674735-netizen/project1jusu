@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.item.ItemMapper">
+
+	<!-- 1. 품목 등록 (자동 생성된 PK itemId 반환) -->
+	<insert id="itemAdd" parameterType="com.health.app.item.ItemDTO" useGeneratedKeys="true" keyProperty="itemId" keyColumn="item_id">
+		INSERT INTO "h_item" (gym_id, item_category, item_count, item_name, item_date, item_price, item_status, item_expiry_date)
+		VALUES (#{gymId}, #{itemCategory}, #{itemCount}, #{itemName}, #{itemDate}, #{itemPrice}, #{itemStatus}, #{itemExpiryDate, jdbcType=DATE})
+	</insert>
+
+	<!-- 2. 품목 목록 조회 (페이징, 검색, 정렬 조건 포함) -->
+	<select id="itemList" resultType="com.health.app.item.ItemDTO">
+		SELECT
+			item_id as itemId,
+			gym_id as gymId,
+			item_category as itemCategory,
+			item_count as itemCount,
+			item_name as itemName,
+			item_date as itemDate,
+			item_price as itemPrice,
+			item_status as itemStatus,
+			item_expiry_date as itemExpiryDate
+		FROM "h_item"
+		WHERE gym_id = #{gymId}
+		<if test="pager != null and pager.searchKeyword != null and pager.searchKeyword != ''">
+			AND item_name LIKE CONCAT('%', #{pager.searchKeyword}, '%')
+		</if>
+		<choose>
+			<when test="sort == 'count_desc'">ORDER BY item_count DESC</when>
+			<when test="sort == 'price_desc'">ORDER BY item_price DESC</when>
+			<otherwise>ORDER BY item_id DESC</otherwise>
+		</choose>
+		<if test="pager != null">
+			LIMIT #{pager.pageSize} OFFSET #{pager.offset}
+		</if>
+	</select>
+
+	<!-- 3. 페이징 계산용 전체 품목 수 조회 -->
+	<select id="itemListCount" resultType="long">
+		SELECT COUNT(*)
+		FROM "h_item"
+		WHERE gym_id = #{gymId}
+		<if test="pager != null and pager.searchKeyword != null and pager.searchKeyword != ''">
+			AND item_name LIKE CONCAT('%', #{pager.searchKeyword}, '%')
+		</if>
+	</select>
+
+	<!-- 4. 등록된 품목명 목록 조회 (중복 제거) -->
+	<select id="itemNames" resultType="com.health.app.item.ItemDTO">
+		SELECT DISTINCT item_name as itemName
+		FROM "h_item"
+		WHERE gym_id = #{gymId}
+	</select>
+
+	<!-- 5. 전체 품목 목록 조회 (엑셀 내보내기/전체 데이터용) -->
+	<select id="itemListAll" resultType="com.health.app.item.ItemDTO">
+		SELECT
+			item_id as itemId,
+			gym_id as gymId,
+			item_category as itemCategory,
+			item_count as itemCount,
+			item_name as itemName,
+			item_date as itemDate,
+			item_price as itemPrice,
+			item_status as itemStatus,
+			item_expiry_date as itemExpiryDate
+		FROM "h_item"
+		WHERE gym_id = #{gymId}
+		<if test="keyword != null and keyword != ''">
+			AND item_name LIKE CONCAT('%', #{keyword}, '%')
+		</if>
+		ORDER BY item_id DESC
+	</select>
+
+	<!-- 6. 단일 품목 상세 조회 -->
+	<select id="itemDetail" parameterType="com.health.app.item.ItemDTO" resultType="com.health.app.item.ItemDTO">
+		SELECT
+			item_id as itemId,
+			gym_id as gymId,
+			item_category as itemCategory,
+			item_count as itemCount,
+			item_name as itemName,
+			item_date as itemDate,
+			item_price as itemPrice,
+			item_status as itemStatus,
+			item_expiry_date as itemExpiryDate
+		FROM "h_item"
+		WHERE item_id = #{itemId}
+	</select>
+
+	<!-- 7. 품목 정보 수정 -->
+	<update id="itemUpdate" parameterType="com.health.app.item.ItemDTO">
+		UPDATE "h_item"
+		SET
+			item_category = #{itemCategory},
+			item_count = #{itemCount},
+			item_name = #{itemName},
+			item_date = #{itemDate},
+			item_price = #{itemPrice},
+			item_status = #{itemStatus},
+			item_expiry_date = #{itemExpiryDate, jdbcType=DATE}
+		WHERE item_id = #{itemId}
+	</update>
+
+	<!-- 8. 품목 삭제 -->
+	<delete id="itemDelete" parameterType="com.health.app.item.ItemDTO">
+		DELETE FROM "h_item"
+		WHERE item_id = #{itemId}
+	</delete>
+
+	<!-- 9. 유효기간 7일 이내 임박 품목 조회 (스케줄러 알림용) -->
+	<select id="findExpiringItems" resultType="com.health.app.item.ItemDTO">
+		SELECT
+			item_id as itemId,
+			gym_id as gymId,
+			item_category as itemCategory,
+			item_count as itemCount,
+			item_name as itemName,
+			item_date as itemDate,
+			item_price as itemPrice,
+			item_status as itemStatus,
+			item_expiry_date as itemExpiryDate
+		FROM "h_item"
+		WHERE item_expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 day'
+	</select>
+
+	<!-- 10. 카테고리별 품목 조회 -->
+	<select id="selectByCategory" resultType="com.health.app.item.ItemDTO">
+		SELECT
+			item_id as itemId,
+			gym_id as gymId,
+			item_category as itemCategory,
+			item_count as itemCount,
+			item_name as itemName,
+			item_date as itemDate,
+			item_price as itemPrice,
+			item_status as itemStatus,
+			item_expiry_date as itemExpiryDate
+		FROM "h_item"
+		WHERE gym_id = #{gymId} AND item_category = #{category}
+	</select>
+
+</mapper>
