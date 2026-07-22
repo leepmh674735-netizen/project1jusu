@@ -1,1 +1,381 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.contract.ContractMapper">
+
+    <!-- h_contract_data + h_member(수신자) 조인 결과 매핑 -->
+    <resultMap id="contractUserMap" type="com.health.app.contract.ContractDTO">
+        <id property="dataId" column="data_id"/>
+        <result property="contract" column="contract"/>
+        <result property="gymId" column="gym_id"/>
+        <result property="senderId" column="sender_id"/>
+        <result property="receiverId" column="receiver_id"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="status" column="status"/>
+        <result property="previousDataId" column="previous_data_id"/>
+        <result property="relatedDataId" column="related_data_id"/>
+        <result property="sourceCouponId" column="source_coupon_id"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="amount" column="amount"/>
+        <result property="contractRate" column="contract_rate"/>
+        <result property="quantity" column="quantity"/>
+        <result property="remainingCount" column="remaining_count"/>
+        <result property="issueDate" column="issue_date"/>
+        <result property="signedAt" column="signed_at"/>
+        <result property="managerId" column="manager_id"/>
+        <result property="birthDate" column="birth_date"/>
+        <result property="avgWorkoutHour" column="avg_workout_hour"/>
+        <result property="avgWorkoutMinute" column="avg_workout_minute"/>
+        <result property="gymName" column="j_gym_name"/>
+        <!-- 계약 상대방(수신자) 회원 정보 -->
+        <association property="member" javaType="com.health.app.member.MemberDTO">
+            <id property="username" column="m_username"/>
+            <result property="name" column="m_name"/>
+            <result property="email" column="m_email"/>
+            <result property="role" column="m_role"/>
+            <result property="gymId" column="m_gym_id"/>
+        </association>
+    </resultMap>
+
+    <!-- 로그인 권한별 계약 유저 리스트 조회 SQL -->
+    <select id="contractUserList" parameterType="com.health.app.contract.ContractDTO" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.previous_data_id, d.related_data_id, d.source_coupon_id,
+               d.start_date, d.end_date, d.amount, d.contract_rate, d.quantity, d.remaining_count,
+               d.issue_date, d.signed_at, d.manager_id, d.birth_date, d.avg_workout_hour, d.avg_workout_minute,
+               m.username as m_username, m.name as m_name, m.email as m_email,
+               m.role as m_role, m.gym_id as m_gym_id
+          from "h_contract_data" d
+          left join "h_member" m on d.receiver_id = m.username
+        <where>
+            <choose>
+                <when test="role == 'ADMIN'">
+                    and d.contract = 1
+                </when>
+                <when test="role == 'OWNER'">
+                    and (
+                        (d.sender_id = #{username} and d.contract in (2, 3, 4, 5))
+                        or (d.contract = 1 and d.receiver_id = #{username})
+                    )
+                </when>
+                <when test="role == 'TRAINER'">
+                    and (
+                        (d.contract in (4, 5) and d.manager_id = #{username})
+                        or (d.contract = 2 and d.receiver_id = #{username})
+                    )
+                </when>
+                <otherwise>
+                    and 1 = 0
+                </otherwise>
+            </choose>
+            <if test="contract != null">
+                and d.contract = #{contract}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (m.name like concat('%', #{keyword}, '%')
+                     or cast(m.username as varchar) like concat('%', #{keyword}, '%')
+                     or d.receiver_name like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        order by d.issue_date desc, d.data_id desc
+    </select>
+
+    <!-- 계약서 상세 조회 SQL -->
+    <select id="contractDetail" parameterType="com.health.app.contract.ContractDTO" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.previous_data_id, d.related_data_id, d.source_coupon_id,
+               d.start_date, d.end_date, d.amount, d.contract_rate, d.quantity, d.remaining_count,
+               d.issue_date, d.signed_at, d.manager_id, d.birth_date, d.avg_workout_hour, d.avg_workout_minute,
+               g.gym_name as j_gym_name,
+               m.username as m_username, m.name as m_name, m.email as m_email,
+               m.role as m_role, m.gym_id as m_gym_id
+          from "h_contract_data" d
+          left join "h_gym" g on d.gym_id = g.gym_id
+          left join "h_member" m on d.receiver_id = m.username
+         where d.data_id = #{dataId}
+    </select>
+
+    <!-- 계약서 서명 처리 SQL -->
+    <update id="contractSign" parameterType="com.health.app.contract.ContractDTO">
+        update "h_contract_data"
+           set status = 'SIGNED',
+               signed_at = now()
+         where data_id = #{dataId}
+           and status = 'ISSUED'
+    </update>
+
+    <!-- 계약 만료 일괄 갱신 SQL (contractSweep으로 ID 변경) -->
+    <update id="contractSweep">
+        update "h_contract_data"
+           set status = 'TERMINATED'
+         where end_date is not null
+           and end_date &lt; current_date
+           and status in ('ISSUED', 'SIGNED', 'ACTIVE')
+    </update>
+
+    <!-- 계약 활성화 일괄 갱신 SQL -->
+    <update id="contractActivateSweep">
+        update "h_contract_data" d
+           set status = 'ACTIVE',
+               remaining_count = (case when d.contract in (4, 5) then d.quantity else d.remaining_count end)
+         where d.status = 'SIGNED'
+           and d.start_date is not null
+           and d.start_date &lt;= current_date
+           and (d.contract in (1, 2)
+                or (d.contract in (3, 4, 5)
+                    and exists (select 1 from "h_pay" p where p.data_id = d.data_id)))
+    </update>
+
+    <!-- 결제 완료 직후 계약 활성화 SQL -->
+    <update id="contractActive" parameterType="com.health.app.contract.ContractDTO">
+        update "h_contract_data"
+           set status = 'ACTIVE',
+               remaining_count = (case when contract in (4, 5) then quantity else remaining_count end)
+         where data_id = #{dataId}
+           and status = 'SIGNED'
+    </update>
+
+    <!-- 체험권 계약 대상 목록 행 매핑 -->
+    <resultMap id="trialTargetMap" type="com.health.app.contract.TrialTargetDTO">
+        <id property="couponId" column="coupon_id"/>
+        <result property="couponNum" column="coupon_num"/>
+        <result property="couponName" column="coupon_name"/>
+        <result property="couponCount" column="coupon_count"/>
+        <result property="couponExpire" column="coupon_expire"/>
+        <result property="baseDataId" column="base_data_id"/>
+        <result property="baseContract" column="base_contract"/>
+        <result property="baseManagerId" column="base_manager_id"/>
+        <association property="member" javaType="com.health.app.member.MemberDTO">
+            <id property="username" column="m_username"/>
+            <result property="name" column="m_name"/>
+            <result property="email" column="m_email"/>
+            <result property="role" column="m_role"/>
+            <result property="gymId" column="m_gym_id"/>
+            <result property="birth" column="m_birth"/>
+        </association>
+    </resultMap>
+
+    <!-- 체험권 계약 대상 목록 조회 SQL -->
+    <select id="trialTargetList" parameterType="com.health.app.contract.ContractDTO" resultMap="trialTargetMap">
+        select c.coupon_id, c.coupon_num, ct.coupon_name, ct.coupon_count, c.date as coupon_expire,
+               m.username as m_username, m.name as m_name, m.email as m_email,
+               m.role as m_role, m.gym_id as m_gym_id, m.birth as m_birth,
+               b.data_id as base_data_id, b.contract as base_contract,
+               (case when b.contract = 4 then b.manager_id else null end) as base_manager_id
+          from "h_coupon_type" ct
+          join "h_coupon" c on c.coupon_num = ct.coupon_num
+          join "h_member" m on c.to_id = m.username
+          left join lateral (
+              select d.data_id, d.contract, d.manager_id
+                from "h_contract_data" d
+               where d.receiver_id = m.username
+                 and d.contract in (3, 4)
+                 and d.status in ('SIGNED', 'ACTIVE')
+                 and (d.end_date is null or d.end_date &gt;= current_date)
+               order by d.data_id desc
+               limit 1
+          ) b on true
+         where ct.category = '체험권'
+           and ct.gym_id = #{gymId}
+           and c.from_id = #{username}
+           and c.status = '미사용'
+           and (c.date is null or c.date &gt;= current_date)
+           and upper(m.role) = 'MEMBER'
+           and m.gym_id = #{gymId}
+         order by c.coupon_id desc
+    </select>
+
+    <!-- 회원의 유효한 기본 계약 조회 SQL -->
+    <select id="activeBaseContractFind" parameterType="com.health.app.contract.ContractDTO" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.manager_id, d.start_date, d.end_date
+          from "h_contract_data" d
+         where d.contract in (3, 4)
+           and d.receiver_id = #{receiverId}
+           and d.status in ('SIGNED', 'ACTIVE')
+         order by d.data_id desc
+         limit 1
+    </select>
+
+    <!-- 회원의 유효한 PT 체험 계약 조회 SQL -->
+    <select id="activeTrialContractFind" parameterType="com.health.app.contract.ContractDTO" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.manager_id, d.start_date, d.end_date
+          from "h_contract_data" d
+         where d.contract = 5
+           and (d.receiver_id = #{receiverId}
+                <if test="sourceCouponId != null">
+                or d.source_coupon_id = #{sourceCouponId}
+                </if>
+               )
+           and d.status in ('DRAFT', 'ISSUED', 'SIGNED', 'ACTIVE')
+         order by d.data_id desc
+         limit 1
+    </select>
+
+    <!-- PT 체험 발행 근거 체험권 재검증 SQL -->
+    <select id="trialCouponValidate" parameterType="com.health.app.contract.ContractDTO" resultType="int">
+        select count(*)
+          from "h_coupon" c
+          join "h_coupon_type" ct on c.coupon_num = ct.coupon_num
+         where c.coupon_id = #{sourceCouponId}
+           and c.from_id = #{senderId}
+           and c.to_id = #{receiverId}
+           and ct.category = '체험권'
+           and ct.gym_id = #{gymId}
+    </select>
+
+    <!-- 계약 종료 처리 SQL -->
+    <update id="contractTerminate" parameterType="com.health.app.contract.ContractDTO">
+        update "h_contract_data"
+           set status = 'TERMINATED'
+         where data_id = #{dataId}
+    </update>
+
+    <!-- 기존 임금 계약 조회 SQL -->
+    <select id="wageContractFind" parameterType="com.health.app.contract.ContractDTO" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.previous_data_id, d.related_data_id, d.source_coupon_id,
+               d.start_date, d.end_date, d.amount, d.contract_rate, d.quantity, d.remaining_count,
+               d.issue_date, d.signed_at, d.manager_id, d.birth_date, d.avg_workout_hour, d.avg_workout_minute
+          from "h_contract_data" d
+         where d.contract = 2
+           and d.sender_id = #{senderId}
+           and d.receiver_id = #{receiverId}
+         order by d.data_id desc
+         limit 1
+    </select>
+
+    <!-- 임금 계약 재작성 SQL -->
+    <update id="wageContractUpdate" parameterType="com.health.app.contract.ContractDTO">
+        update "h_contract_data"
+           set gym_id = #{gymId, jdbcType=BIGINT},
+               receiver_name = #{receiverName},
+               amount = #{amount, jdbcType=BIGINT},
+               contract_rate = #{contractRate, jdbcType=NUMERIC},
+               start_date = #{startDate, jdbcType=DATE},
+               end_date = #{endDate, jdbcType=DATE},
+               status = 'ISSUED',
+               signed_at = null,
+               issue_date = current_date
+         where data_id = #{dataId}
+    </update>
+
+    <!-- 구직 트레이너 조회 SQL -->
+    <select id="jobSeekingTrainers" resultType="com.health.app.member.MemberDTO">
+        select m.username, m.name
+          from "h_member" m
+          left join lateral (
+              select c.status
+                from "h_contract_data" c
+               where c.contract = 2
+                 and c.receiver_id = m.username
+               order by c.data_id desc
+               limit 1
+          ) w on true
+         where upper(m.role) = 'TRAINER'
+           and (w.status is null or w.status = 'TERMINATED')
+         order by m.username asc
+    </select>
+
+    <!-- 역할별 로스터 행 매핑 -->
+    <resultMap id="rosterMap" type="com.health.app.contract.ContractDTO">
+        <id property="username" column="m_username"/>
+        <result property="dataId" column="data_id"/>
+        <result property="contract" column="contract"/>
+        <result property="status" column="status"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="issueDate" column="issue_date"/>
+        <association property="member" javaType="com.health.app.member.MemberDTO">
+            <id property="username" column="m_username"/>
+            <result property="name" column="m_name"/>
+            <result property="email" column="m_email"/>
+            <result property="role" column="m_role"/>
+            <result property="gymId" column="m_gym_id"/>
+        </association>
+    </resultMap>
+
+    <!-- (ADMIN) 제휴 매장 리스트 조회 SQL -->
+    <select id="rosterGymList" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.previous_data_id, d.related_data_id, d.source_coupon_id, d.start_date, d.end_date, d.issue_date,
+               g.gym_name as j_gym_name,
+               m.username as m_username, m.name as m_name, m.email as m_email,
+               m.role as m_role, m.gym_id as m_gym_id
+          from (
+              select distinct on (gym_id) *
+                from "h_contract_data"
+               where contract = 1
+               order by gym_id, data_id desc
+          ) d
+          left join "h_gym" g on d.gym_id = g.gym_id
+          left join "h_member" m on d.receiver_id = m.username
+         order by d.end_date asc nulls last, d.data_id desc
+    </select>
+
+    <!-- (ADMIN/OWNER) 매장 소속 트레이너·회원 명단 조회 SQL -->
+    <select id="rosterMemberList" parameterType="com.health.app.contract.ContractDTO" resultMap="rosterMap">
+        select m.username as m_username, m.name as m_name, m.email as m_email,
+               m.role as m_role, m.gym_id as m_gym_id,
+               d.data_id, d.contract, d.status, d.start_date, d.end_date, d.issue_date
+          from "h_member" m
+          left join lateral (
+              select c.data_id, c.contract, c.status, c.start_date, c.end_date, c.issue_date
+                from "h_contract_data" c
+               where c.receiver_id = m.username
+                 and ((upper(m.role) = 'TRAINER' and c.contract = 2)
+                   or (upper(m.role) = 'MEMBER' and c.contract in (3, 4, 5)))
+               order by c.data_id desc
+               limit 1
+          ) d on true
+         where m.gym_id = #{gymId, jdbcType=BIGINT}
+           and upper(m.role) in ('TRAINER', 'MEMBER')
+         order by upper(m.role) desc, m.username asc
+    </select>
+
+    <!-- (TRAINER) 담당 유저 리스트 조회 SQL -->
+    <select id="rosterManagedList" parameterType="com.health.app.contract.ContractDTO" resultMap="contractUserMap">
+        select d.data_id, d.contract, d.gym_id, d.sender_id, d.receiver_id,
+               d.receiver_name, d.status, d.previous_data_id, d.related_data_id, d.source_coupon_id, d.start_date, d.end_date, d.issue_date,
+               d.quantity, d.manager_id,
+               m.username as m_username, m.name as m_name, m.email as m_email,
+               m.role as m_role, m.gym_id as m_gym_id
+          from "h_contract_data" d
+          left join "h_member" m on d.receiver_id = m.username
+         where d.contract in (4, 5)
+           and d.manager_id = #{username}
+         order by d.end_date asc nulls last, d.data_id desc
+    </select>
+
+    <!-- 계약서 발행 SQL -->
+    <insert id="contractInsert" parameterType="com.health.app.contract.ContractDTO"
+            useGeneratedKeys="true" keyProperty="dataId" keyColumn="data_id">
+        insert into "h_contract_data"
+        (contract, gym_id, sender_id, receiver_id, receiver_name, status,
+         start_date, end_date, amount, contract_rate, quantity, manager_id, birth_date, avg_workout_hour, avg_workout_minute,
+         previous_data_id, related_data_id, source_coupon_id, issue_date)
+        values
+        (#{contract},
+         #{gymId, jdbcType=BIGINT},
+         #{senderId},
+         #{receiverId, jdbcType=BIGINT},
+         #{receiverName},
+         #{status},
+         #{startDate, jdbcType=DATE},
+         #{endDate, jdbcType=DATE},
+         #{amount, jdbcType=BIGINT},
+         #{contractRate, jdbcType=NUMERIC},
+         #{quantity, jdbcType=INTEGER},
+         #{managerId, jdbcType=BIGINT},
+         #{birthDate, jdbcType=DATE},
+         #{avgWorkoutHour, jdbcType=INTEGER},
+         #{avgWorkoutMinute, jdbcType=INTEGER},
+         #{previousDataId, jdbcType=BIGINT},
+         #{relatedDataId, jdbcType=BIGINT},
+         #{sourceCouponId, jdbcType=BIGINT},
+         current_date)
+    </insert>
+</mapper>

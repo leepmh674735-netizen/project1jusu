@@ -35,7 +35,7 @@ public class ContractDTO {
 	private LocalDate issueDate;
 
 	private LocalDateTime signedAt;
-	private Long mangerId;
+	private Long managerId; 
 	private LocalDate birthDate;
 	private Integer avgWorkoutHour;
 	private Integer avgWorkoutMinute;
@@ -49,5 +49,28 @@ public class ContractDTO {
 	private String keyword;
 
 	private String senderId;
+
+	public void setUsername(Long username) {
+		this.username = (username != null) ? String.valueOf(username) : null;
+	}
+
+	public Long getUsernameAsLong() {
+		if (this.username == null || this.username.isBlank()) {
+			return null;
+		}
+		try {
+			return Long.parseLong(this.username);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	public Integer getRemainCount() {
+		return this.remainingCount;
+	}
+
+	public void setRemainCount(Integer remainCount) {
+		this.remainingCount = remainCount;
+	}
 
 }

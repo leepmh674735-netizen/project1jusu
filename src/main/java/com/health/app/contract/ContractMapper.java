@@ -15,25 +15,27 @@ public interface ContractMapper {
 
 	public ContractDTO contractDetail(ContractDTO contractDTO) throws Exception;
 
-	public int coutractSign(ContractDTO contractDTO) throws Exception;
+	public int contractSign(ContractDTO contractDTO) throws Exception;
 
-	public int contactExpireSweep() throws Exception;
+	public int contractSweep() throws Exception;
 	
-	public int contratActivateSweep() throws Exception;
+	public int contractActivateSweep() throws Exception;
 
-	public int contractActive(ContractDTO contactDTO) throws Exception;
+	public int contractActive(ContractDTO contractDTO) throws Exception;
 
-	public List<TrialTargetDTO> trailTagetList(ContractDTO contractDTO) throws Exception;
+	public List<TrialTargetDTO> trialTargetList(ContractDTO contractDTO) throws Exception;
 
-	public ContractDTO activrBaseContractFind(ContractDTO contractDTO) throws Exception;
+	public ContractDTO activeBaseContractFind(ContractDTO contractDTO) throws Exception;
 
-	public ContractDTO activerTrialContractFind(ContractDTO contractDTO) throws Exception;
+	public ContractDTO activeTrialContractFind(ContractDTO contractDTO) throws Exception;
 
 	public int trialCouponValidate(ContractDTO contractDTO) throws Exception;
 
-	public int contractTeminate(ContractDTO contractDTO) throws Exception;
+	public int contractTerminate(ContractDTO contractDTO) throws Exception;
 
-	public int wageCoutractUpdate(ContractDTO contractDTO) throws Exception;
+	public ContractDTO wageContractFind(ContractDTO contractDTO) throws Exception;
+
+	public int wageContractUpdate(ContractDTO contractDTO) throws Exception;
 
 	public List<MemberDTO> jobSeekingTrainers() throws Exception;
 

@@ -10,7 +10,11 @@ public interface MemberMapper {
 
 	public int join(MemberDTO memberDTO) throws Exception;
 
+	
 	public MemberDTO idcheck(MemberDTO memberDTO) throws Exception;
+
+	
+	public MemberDTO idCheck(MemberDTO memberDTO) throws Exception;
 
 	public int update(MemberDTO memberDTO) throws Exception;
 
@@ -24,7 +28,6 @@ public interface MemberMapper {
 
 	public RefreshTokenDTO getRefreshToken(String refreshToken) throws Exception;
 
-	
 	public int deleteToken(@Param("username") Long username) throws Exception;
 
 }

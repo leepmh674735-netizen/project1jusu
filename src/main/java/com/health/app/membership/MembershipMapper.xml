@@ -2,15 +2,28 @@
 <!DOCTYPE mapper
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.health.app.membership.MembershipMapper">
+<mapper namespace="com.health.app.contract.ContractMapper">
 
-
-	<select id="list" parameterType="Long"
+	<!-- 2. 컬럼명(snake_case)을 DTO 필드명(camelCase)으로 명확히 매핑 -->
+	<select id="list" parameterType="long"
 		resultType="com.health.app.contract.ContractDTO">
-		SELECT *
-		FROM "h_contract_data"
+		SELECT
+		contract_id AS contractId,
+		gym_id AS gymId,
+		sender_id
+		AS senderId,
+		receiver_id AS receiverId,
+		contract_type AS contractType,
+		amount,
+		status,
+		start_date AS startDate,
+		end_date AS endDate,
+		created_at
+		AS createdAt
+		FROM h_contract_data
 		WHERE receiver_id = #{username}
-		AND status = 'ACTIVE'
+		AND
+		status = 'ACTIVE'
 		ORDER BY start_date DESC
 	</select>
 

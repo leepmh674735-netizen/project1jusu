@@ -1,4 +1,4 @@
-package com.health.app.checklnout;
+package com.health.app.checkInout;
 
 import java.time.LocalDateTime;
 
@@ -24,5 +24,14 @@ public class CheckInoutDTO {
 	private String memberName;
 	private String trainerName;
 	private Integer remainCount;
+
+	// ⭐ setRemainingCount 에러 해결을 위한 메소드 추가
+	public void setRemainingCount(Integer remainingCount) {
+		this.remainCount = remainingCount;
+	}
+
+	public Integer getRemainingCount() {
+		return this.remainCount;
+	}
 
 }

@@ -7,9 +7,9 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface SurveyMapper {
 
-	int create(SurveyDTO surveyDTO);
+    int create(SurveyDTO surveyDTO) throws Exception;
 
-	SurveyDTO selectByUsername(@Param("username") String username);
+    SurveyDTO selectByUsername(@Param("username") Long username) throws Exception;
 
-	List<SurveyDTO> selectAll();
+    List<SurveyDTO> selectAll() throws Exception;
 }

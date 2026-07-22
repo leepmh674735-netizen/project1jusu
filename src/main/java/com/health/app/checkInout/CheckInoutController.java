@@ -1,4 +1,4 @@
-package com.health.app.checklnout;
+package com.health.app.checkInout;
 
 public class CheckInoutController {
 

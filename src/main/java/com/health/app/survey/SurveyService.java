@@ -12,15 +12,18 @@ public class SurveyService {
 		this.surveyMapper = surveyMapper;
 	}
 
-	public int create(SurveyDTO surveyDTO) {
+	public int create(SurveyDTO surveyDTO) throws Exception {
 		return surveyMapper.create(surveyDTO);
 	}
 
-	public SurveyDTO selectByUsername(String username) {
+	public SurveyDTO selectByUsername(Long username) throws Exception {
+		if (username == null) {
+			return null;
+		}
 		return surveyMapper.selectByUsername(username);
 	}
 
-	public List<SurveyDTO> selectAll() {
+	public List<SurveyDTO> selectAll() throws Exception {
 		return surveyMapper.selectAll();
 	}
 }

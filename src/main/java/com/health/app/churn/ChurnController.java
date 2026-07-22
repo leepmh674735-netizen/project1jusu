@@ -1,4 +1,4 @@
-package com.health.app.survey;
+package com.health.app.churn;
 
 import java.util.List;
 
@@ -11,18 +11,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/survey")
-public class SurveyController {
+@RequestMapping("/churn")
+public class ChurnController {
 
-	private final SurveyService surveyService;
+	private final ChurnService churnService;
 
-	public SurveyController(SurveyService surveyService) {
-		this.surveyService = surveyService;
+	public ChurnController(ChurnService churnService) {
+		this.churnService = churnService;
 	}
 
 	@PostMapping("/create")
-	public ResponseEntity<String> create(@RequestBody SurveyDTO surveyDTO) throws Exception {
-		int result = surveyService.create(surveyDTO);
+	public ResponseEntity<String> create(@RequestBody ChurnDTO churnDTO) throws Exception {
+		int result = churnService.create(churnDTO);
 		if (result > 0) {
 			return ResponseEntity.ok("Success");
 		}
@@ -30,8 +30,8 @@ public class SurveyController {
 	}
 
 	@GetMapping("/{username}")
-	public ResponseEntity<SurveyDTO> selectByUsername(@PathVariable("username") Long username) throws Exception {
-		SurveyDTO dto = surveyService.selectByUsername(username);
+	public ResponseEntity<ChurnDTO> selectByUsername(@PathVariable("username") Long username) throws Exception {
+		ChurnDTO dto = churnService.selectByUsername(username);
 		if (dto == null) {
 			return ResponseEntity.notFound().build();
 		}
@@ -39,7 +39,7 @@ public class SurveyController {
 	}
 
 	@GetMapping("/list")
-	public ResponseEntity<List<SurveyDTO>> selectAll() throws Exception {
-		return ResponseEntity.ok(surveyService.selectAll());
+	public ResponseEntity<List<ChurnDTO>> selectAll() throws Exception {
+		return ResponseEntity.ok(churnService.selectAll());
 	}
 }

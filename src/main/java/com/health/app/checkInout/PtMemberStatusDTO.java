@@ -1,4 +1,4 @@
-package com.health.app.checklnout;
+package com.health.app.checkInout;
 
 import java.time.LocalDate;
 
@@ -9,14 +9,15 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class RebookDTO {
+public class PtMemberStatusDTO {
 
-	private String category;
 	private Long dataId;
 	private Long username;
 	private String memberName;
-	private String trainerName;
+	private Integer totalCount;
+	private Integer usedCount;
 	private Integer remainingCount;
+	private LocalDate startDate;
 	private LocalDate endDate;
 
 }

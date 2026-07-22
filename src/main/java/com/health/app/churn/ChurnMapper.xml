@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.health.app.churn.ChurnMapper">
+
+    <!-- 1. 모델 입력 데이터 저장 -->
+    <insert id="create" parameterType="com.health.app.churn.ChurnDTO">
+        insert into "h_model_data"
+        (
+            username, age, total_month, visit_per_week, aver_exercise,
+            pt_yn, group_yn, time_cong, last_days, contract_type
+        )
+        values
+        (
+            #{username}, #{age}, #{totalMonth}, #{visitPerWeek}, #{averExercise},
+            #{ptYn}, #{groupYn}, #{timeCong}, #{lastDays}, #{contractType}
+        )
+    </insert>
+
+    <!-- 2. 회원 1명의 모델 입력 데이터 조회 -->
+    <select id="selectByUsername" parameterType="string" resultType="com.health.app.churn.ChurnDTO">
+        select model_id, username, age, total_month, visit_per_week, aver_exercise,
+               pt_yn, group_yn, time_cong, last_days, contract_type
+        from "h_model_data"
+        where username = #{username}
+    </select>
+
+    <!-- 3. 전체 회원 모델 입력 데이터 조회 (대시보드 집계용) -->
+    <select id="selectAll" resultType="com.health.app.churn.ChurnDTO">
+        select model_id, username, age, total_month, visit_per_week, aver_exercise,
+               pt_yn, group_yn, time_cong, last_days, contract_type
+        from "h_model_data"
+    </select>
+
+    <!-- 4. 회원 1명의 모든 피처 데이터 UPSERT (group_yn 포함 기준) -->
+    <insert id="upsertChurnFeatures" parameterType="com.health.app.churn.ChurnDTO">
+        insert into "h_model_data" 
+        (
+            username, age, total_month, visit_per_week, aver_exercise, 
+            pt_yn, group_yn, time_cong, last_days, contract_type
+        )
+        values 
+        (
+            #{username}, #{age}, #{totalMonth}, #{visitPerWeek}, #{averExercise}, 
+            #{ptYn}, #{groupYn}, #{timeCong}, #{lastDays}, #{contractType}
+        )
+        on conflict (username)
+        do update set
+            age = excluded.age,
+            total_month = excluded.total_month,
+            visit_per_week = excluded.visit_per_week,
+            aver_exercise = excluded.aver_exercise,
+            pt_yn = excluded.pt_yn,
+            group_yn = excluded.group_yn,
+            time_cong = excluded.time_cong,
+            last_days = excluded.last_days,
+            contract_type = excluded.contract_type
+    </insert>
+
+    <!-- 5. 전체 회원의 모든 피처 데이터 일괄 벌크 UPSERT -->
+    <insert id="upsertChurnFeaturesAll" parameterType="java.util.List">
+        insert into "h_model_data" 
+        (
+            username, age, total_month, visit_per_week, aver_exercise, 
+            pt_yn, group_yn, time_cong, last_days, contract_type
+        )
+        values
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.username}, #{item.age}, #{item.totalMonth}, #{item.visitPerWeek}, #{item.averExercise}, 
+                #{item.ptYn}, #{item.groupYn}, #{item.timeCong}, #{item.lastDays}, #{item.contractType}
+            )
+        </foreach>
+        on conflict (username)
+        do update set
+            age = excluded.age,
+            total_month = excluded.total_month,
+            visit_per_week = excluded.visit_per_week,
+            aver_exercise = excluded.aver_exercise,
+            pt_yn = excluded.pt_yn,
+            group_yn = excluded.group_yn,
+            time_cong = excluded.time_cong,
+            last_days = excluded.last_days,
+            contract_type = excluded.contract_type
+    </insert>
+
+</mapper>

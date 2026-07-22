@@ -9,6 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.health.app.config.JwtUtill;
+import com.health.app.contract.ContractDTO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,6 +20,38 @@ public class MemberService {
 	private final MemberMapper memberMapper;
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final JwtUtill jwtUtill;
+
+	public int autoJoin(ContractDTO contractDTO) throws Exception {
+		if (contractDTO == null) {
+			return 0;
+		}
+
+		MemberDTO member = new MemberDTO();
+
+		if (contractDTO.getReceiverId() != null) {
+			member.setUsername(contractDTO.getReceiverId());
+		}
+
+		member.setGymId(contractDTO.getGymId());
+
+		if (contractDTO.getReceiverName() != null) {
+			member.setName(contractDTO.getReceiverName());
+		}
+
+		Long contract = contractDTO.getContract();
+		if (Long.valueOf(2).equals(contract)) {
+			member.setRole("TRAINER");
+		} else if (Long.valueOf(3).equals(contract) || Long.valueOf(4).equals(contract)) {
+			member.setRole("MEMBER");
+		}
+
+		MemberDTO existMember = memberMapper.idcheck(member);
+		if (existMember == null) {
+			return memberMapper.join(member);
+		} else {
+			return memberMapper.update(member);
+		}
+	}
 
 	public List<MemberDTO> findByRole(String role) throws Exception {
 		return memberMapper.findByRole(role);

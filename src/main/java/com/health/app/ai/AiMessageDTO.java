@@ -14,9 +14,11 @@ public class AiMessageDTO {
 	private Long messageId;
 	private Long conversationId;
 	private String role;
+	private String content;
 	private String toolName;
 	private String toolArgs;
 	private String toolResult;
+	private Long tokenIn;
 	private Long tokenOut;
 	private LocalDateTime createdAt;
 

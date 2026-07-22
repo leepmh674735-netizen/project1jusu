@@ -20,12 +20,10 @@ public class ResultService {
 		return resultMapper.selectAll(gymId);
 	}
 
-	// 1. 메서드명을 selectStatPeriods로 수정
 	public List<ChurnStatPeriodDTO> selectStatPeriods(Long gymId, String mode) throws Exception {
 		return resultMapper.selectStatPeriods(gymId, mode);
 	}
 
-	// 2. 메서드명 오타(breakdownn -> breakdown) 및 파라미터 전달 수정
 	public List<ChurnStatItemDTO> selectStatBreakdown(Long gymId, String mode, String period) throws Exception {
 		return resultMapper.selectStatBreakdown(gymId, mode, period);
 	}
