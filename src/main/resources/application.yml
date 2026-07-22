@@ -6,9 +6,9 @@ spring:
         include: dev
 
     datasource:
-        url: ${DB_URL}
-        username: ${DB_USERNAME}
-        password: ${DB_PASSWORD}
+        url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?prepareThreshold=0}
+        username: ${DB_USERNAME:postgres.zvbgzlbhwjxrtmqdvrjw}
+        password: ${DB_PASSWORD:UQBv8xlW0QMdnxeN}
         driver-class-name: org.postgresql.Driver
         hikari:
             data-source-properties:
@@ -26,8 +26,8 @@ spring:
 
 app:
     server:
-        backend-url: ${BACKEND_SERVER_URL}
-        frontend-url: ${FRONTEND_SERVER_URL}
+        backend-url: ${BACKEND_SERVER_URL:http://localhost:8181}
+        frontend-url: ${FRONTEND_SERVER_URL:http://localhost:3000}
     upload:
         # 파일을 저장 관리
         base: C:/upload/health
@@ -43,7 +43,7 @@ mybatis:
         map-underscore-to-camel-case: true
 
 jwt:
-    secret: ${JWT_SECRET_KEY}
+    secret: ${JWT_SECRET_KEY:default_secret_key_for_development_purposes_only_which_is_long_enough_to_be_secure}
 
 # AI 비서 (Anthropic Messages API) 설정
 # 실제 키는 환경변수 ANTHROPIC_API_KEY로 주입 (아래 기본값은 개발용 placeholder - 실 키를 git에 커밋 금지)

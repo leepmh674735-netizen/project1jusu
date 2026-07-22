@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.health.app.contract.ContractMapper">
+<mapper namespace="com.health.app.membership.MembershipMapper">
 
 	<!-- 2. 컬럼명(snake_case)을 DTO 필드명(camelCase)으로 명확히 매핑 -->
 	<select id="list" parameterType="long"
