@@ -22,7 +22,7 @@ public class ContractDTO {
 
 	private String status;
 	private Long previousDataId;
-	private Long relatedDateId;
+	private Long relatedDataId;
 	private Long sourceCouponId;
 	private LocalDate startDate;
 	private LocalDate endDate;
@@ -35,7 +35,7 @@ public class ContractDTO {
 	private LocalDate issueDate;
 
 	private LocalDateTime signedAt;
-	private Long managerId; 
+	private Long managerId;
 	private LocalDate birthDate;
 	private Integer avgWorkoutHour;
 	private Integer avgWorkoutMinute;
@@ -49,6 +49,10 @@ public class ContractDTO {
 	private String keyword;
 
 	private String senderId;
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
 
 	public void setUsername(Long username) {
 		this.username = (username != null) ? String.valueOf(username) : null;

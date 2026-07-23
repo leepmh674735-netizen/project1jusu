@@ -7,19 +7,16 @@
   <!-- 설문 조사 등록 -->
   <insert id="create" parameterType="com.health.app.survey.SurveyDTO" useGeneratedKeys="true" keyProperty="surveyId" keyColumn="survey_id">
     INSERT INTO "h_survey" (
-      username, service_rate1, service_rate2, cost_rate, equip_rate1, equip_rate2, 
-      employee_rate1, employee_rate2, injury_issue, injury_area
+      username, cost_rate, employee_rate, service_rate, equip_rate, injury_issue, injury_area
     ) VALUES (
-      #{username}, #{serviceRate1}, #{serviceRate2}, #{costRate}, #{equipRate1}, #{equipRate2}, 
-      #{employeeRate1}, #{employeeRate2}, #{injuryIssue}, #{injuryArea}
+      #{username}, #{costRate}, #{employeeRate}, #{serviceRate}, #{equipRate}, #{injuryIssue}, #{injuryArea}
     )
   </insert>
 
   <!-- 특정 회원의 가장 최근 설문 조사 조회 (자동 매핑 적용) -->
   <select id="selectByUsername" parameterType="string" resultType="com.health.app.survey.SurveyDTO">
     SELECT 
-      survey_id, username, service_rate1, service_rate2, cost_rate,
-      equip_rate1, equip_rate2, employee_rate1, employee_rate2,
+      survey_id, username, cost_rate, employee_rate, service_rate, equip_rate,
       injury_issue, injury_area
     FROM "h_survey"
     WHERE username = #{username}
@@ -30,8 +27,7 @@
   <!-- 전체 회원의 가장 최근 설문 조사 목록 조회 (자동 매핑 적용) -->
   <select id="selectAll" resultType="com.health.app.survey.SurveyDTO">
     SELECT 
-      s1.survey_id, s1.username, s1.service_rate1, s1.service_rate2, s1.cost_rate,
-      s1.equip_rate1, s1.equip_rate2, s1.employee_rate1, s1.employee_rate2,
+      s1.survey_id, s1.username, s1.cost_rate, s1.employee_rate, s1.service_rate, s1.equip_rate,
       s1.injury_issue, s1.injury_area
     FROM "h_survey" s1
     JOIN ( 

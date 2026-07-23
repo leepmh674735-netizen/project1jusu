@@ -17,11 +17,6 @@
         WHERE username = #{username}
     </select>
 
-    <select id="idCheck" parameterType="com.health.app.member.MemberDTO" resultType="com.health.app.member.MemberDTO">
-        SELECT * 
-        FROM "h_member" 
-        WHERE username = #{username}
-    </select>
 
     <!-- 회원 정보 수정 SQL -->
     <update id="update" parameterType="com.health.app.member.MemberDTO">

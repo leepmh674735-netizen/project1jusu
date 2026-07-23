@@ -1,6 +1,8 @@
 package com.health.app.contract;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.health.app.member.MemberDTO;
 import com.health.app.member.MemberMapper;
 import com.health.app.member.MemberService;
+import com.health.app.pager.PagedResponse;
+import com.health.app.pager.Pager;
 
 @Service
 public class ContractService {
@@ -23,8 +27,9 @@ public class ContractService {
 	private MemberService memberService;
 
 	private Long toEightDigits(Long phone) {
-		if (phone == null)
+		if (phone == null) {
 			return null;
+		}
 		String phoneStr = String.valueOf(phone);
 		if (phoneStr.length() > 8) {
 			phoneStr = phoneStr.substring(phoneStr.length() - 8);
@@ -33,22 +38,21 @@ public class ContractService {
 	}
 
 	private void contractSweep() throws Exception {
-		contractMapper.contractSweep();
+		contractMapper.contractExpireSweep();
 		contractMapper.contractActivateSweep();
 	}
 
 	@Transactional
-	public int contractActive(ContractDTO contractDTO) throws Exception {
+	public int contractActivate(ContractDTO contractDTO) throws Exception {
 		ContractDTO detail = contractMapper.contractDetail(contractDTO);
 		if (detail == null) {
 			return -1;
 		}
 
+		Long loginId = contractDTO.getUsernameAsLong();
 		String senderIdStr = detail.getSenderId();
 		Long senderId = (senderIdStr != null) ? Long.parseLong(senderIdStr) : null;
 
-		// ⭐ Long 타입으로 변환 후 비교하여 에러 해결
-		Long loginId = contractDTO.getUsernameAsLong();
 		if (loginId == null || !loginId.equals(senderId)) {
 			return -2;
 		}
@@ -57,10 +61,10 @@ public class ContractService {
 			return -3;
 		}
 
-		if (detail.getStartDate() == null || !detail.getStartDate().isAfter(java.time.LocalDate.now())) {
+		if (detail.getStartDate() == null || !detail.getStartDate().isAfter(LocalDate.now())) {
 			return contractMapper.contractActive(contractDTO);
 		}
-		return -1;
+		return 1;
 	}
 
 	public List<TrialTargetDTO> trialTargetList(ContractDTO contractDTO) throws Exception {
@@ -72,9 +76,8 @@ public class ContractService {
 		contractSweep();
 
 		MemberDTO find = new MemberDTO();
-		// ⭐ getUsernameAsLong()을 사용하여 MemberDTO(Long) 타입과 맞춤
 		find.setUsername(contractDTO.getUsernameAsLong());
-		MemberDTO owner = memberMapper.idCheck(find);
+		MemberDTO owner = memberMapper.idcheck(find);
 		contractDTO.setGymId(owner != null && owner.getGymId() != null ? owner.getGymId() : -1L);
 
 		return contractMapper.trialTargetList(contractDTO);
@@ -91,6 +94,28 @@ public class ContractService {
 		contractSweep();
 
 		return contractMapper.contractUserList(contractDTO);
+	}
+
+	public PagedResponse<ContractDTO> contractUserListPage(ContractDTO contractDTO, Pager pager) throws Exception {
+		String role = contractDTO.getRole() == null ? null : contractDTO.getRole().toUpperCase();
+		contractDTO.setRole(role);
+
+		if (role == null || !(role.equals("ADMIN") || role.equals("OWNER") || role.equals("TRAINER"))) {
+			return null;
+		}
+
+		contractSweep();
+
+		if (pager == null) {
+			pager = new Pager();
+		}
+
+		pager.makeOffset();
+		List<ContractDTO> items = contractMapper.contractUserListPage(contractDTO, pager);
+		long totalCount = contractMapper.contractUserListCount(contractDTO);
+		pager.makeBlock(totalCount);
+
+		return new PagedResponse<>(items, pager, totalCount, 0L);
 	}
 
 	public List<MemberDTO> ownerList(String role) throws Exception {
@@ -112,7 +137,7 @@ public class ContractService {
 		String role = contractDTO.getRole() == null ? null : contractDTO.getRole().toUpperCase();
 		Long contract = contractDTO.getContract();
 
-		if (contract != null && (contract == 3 || contract == 4)) {
+		if (contract != null && (contract == 3L || contract == 4L)) {
 			Integer quantity = contractDTO.getQuantity();
 			if (quantity != null && quantity < 0) {
 				return -6;
@@ -121,8 +146,8 @@ public class ContractService {
 			contractDTO.setContract(contract);
 		}
 
-		boolean allowed = ("ADMIN".equals(role) && Long.valueOf(1).equals(contract)) || ("OWNER".equals(role)
-				&& contract != null && (contract == 2 || contract == 3 || contract == 4 || contract == 5));
+		boolean allowed = ("ADMIN".equals(role) && Long.valueOf(1).equals(contract))
+				|| ("OWNER".equals(role) && contract != null && (contract >= 2L && contract <= 5L));
 		if (!allowed) {
 			return -1;
 		}
@@ -142,7 +167,7 @@ public class ContractService {
 		find.setUsername(targetUsername);
 
 		if (find.getUsername() != null) {
-			MemberDTO gymOwner = memberMapper.idCheck(find);
+			MemberDTO gymOwner = memberMapper.idcheck(find);
 			if (gymOwner != null) {
 				contractDTO.setGymId(gymOwner.getGymId());
 			}
@@ -164,23 +189,34 @@ public class ContractService {
 			}
 		}
 
-		if (contract != null && contract >= 3 && contractDTO.getReceiverId() != null) {
+		if (contract != null && contract >= 3L && contractDTO.getReceiverId() != null) {
 			ContractDTO activeBase = contractMapper.activeBaseContractFind(contractDTO);
 			ContractDTO activeTrial = contractMapper.activeTrialContractFind(contractDTO);
 
-			if (contract == 5) {
-				if (contractDTO.getSourceCouponId() == null || contractMapper.trialCouponValidate(contractDTO) == 0) {
+			if (contract == 5L) {
+				if (contractDTO.getSourceCouponId() == null
+						|| contractMapper.trialCouponValidate(contractDTO) == 0) {
 					return -8;
 				}
+
 				if (activeTrial != null) {
 					return -7;
 				}
-			}
 
-			if (activeBase != null) {
-				contractDTO.setRelatedDateId(activeBase.getDataId());
-				contractMapper.contractTerminate(activeBase);
-				contractDTO.setPreviousDataId(activeBase.getDataId());
+				if (activeBase != null) {
+					contractDTO.setRelatedDataId(activeBase.getDataId());
+				}
+			} else {
+				if (activeBase != null) {
+					contractMapper.contractTerminate(activeBase);
+					contractDTO.setPreviousDataId(activeBase.getDataId());
+				}
+				if (contract == 4L && activeTrial != null) {
+					contractMapper.contractTerminate(activeTrial);
+					if (contractDTO.getPreviousDataId() == null) {
+						contractDTO.setPreviousDataId(activeTrial.getDataId());
+					}
+				}
 			}
 		}
 
@@ -197,14 +233,15 @@ public class ContractService {
 		}
 
 		String role = contractDTO.getRole() == null ? null : contractDTO.getRole().toUpperCase();
-		// ⭐ getUsernameAsLong() 사용
 		Long loginId = contractDTO.getUsernameAsLong();
 
 		String senderIdStr = detail.getSenderId();
 		Long senderId = (senderIdStr != null) ? Long.parseLong(senderIdStr) : null;
 
-		boolean party = loginId != null && (loginId.equals(senderId) || loginId.equals(detail.getReceiverId())
-				|| loginId.equals(detail.getManagerId()));
+		boolean party = loginId != null
+				&& (loginId.equals(senderId)
+						|| loginId.equals(detail.getReceiverId())
+						|| loginId.equals(detail.getManagerId()));
 		if (!"ADMIN".equals(role) && !party) {
 			return null;
 		}
@@ -218,7 +255,6 @@ public class ContractService {
 			return -1;
 		}
 
-		// ⭐ getUsernameAsLong() 사용
 		Long loginId = contractDTO.getUsernameAsLong();
 		String senderIdStr = detail.getSenderId();
 		Long senderId = (senderIdStr != null) ? Long.parseLong(senderIdStr) : null;
@@ -237,13 +273,13 @@ public class ContractService {
 
 		if (result > 0) {
 			Long contract = detail.getContract();
-			if (contract != null && (contract == 2 || contract == 3 || contract == 4)) {
+			if (contract != null && (contract == 2L || contract == 3L || contract == 4L)) {
 				memberService.autoJoin(detail);
 			}
 
-			if (contract != null && (contract == 1 || contract == 2)
+			if (contract != null && (contract == 1L || contract == 2L)
 					&& detail.getStartDate() != null
-					&& !detail.getStartDate().isAfter(java.time.LocalDate.now())) {
+					&& !detail.getStartDate().isAfter(LocalDate.now())) {
 				contractMapper.contractActive(contractDTO);
 			}
 		}
@@ -260,18 +296,17 @@ public class ContractService {
 
 		contractSweep();
 
-		if (role.equals("ADMIN")) {
+		if ("ADMIN".equals(role)) {
 			if (contractDTO.getGymId() == null) {
 				return contractMapper.rosterGymList();
 			}
 			return contractMapper.rosterMemberList(contractDTO);
 		}
 
-		if (role.equals("OWNER")) {
+		if ("OWNER".equals(role)) {
 			MemberDTO find = new MemberDTO();
-			// ⭐ getUsernameAsLong() 사용
 			find.setUsername(contractDTO.getUsernameAsLong());
-			MemberDTO owner = memberMapper.idCheck(find);
+			MemberDTO owner = memberMapper.idcheck(find);
 			Long gymId = (owner != null && owner.getGymId() != null) ? owner.getGymId() : -1L;
 			contractDTO.setGymId(gymId);
 			return contractMapper.rosterMemberList(contractDTO);
@@ -285,7 +320,6 @@ public class ContractService {
 		if (!"ADMIN".equals(upper)) {
 			return null;
 		}
-
 		contractSweep();
 		return contractMapper.jobSeekingTrainers();
 	}
