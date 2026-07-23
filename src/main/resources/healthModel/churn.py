@@ -41,14 +41,42 @@ sys.path.insert(0, HERE)
 
 # ─────────────────── 이탈 예측 엔진 (churn_bundle.joblib) ───────────────────
 # predict.py 제거 후 추론을 churn.py 내부에 self-contained 로 재구현.
-_BUNDLE = joblib.load(os.path.join(HERE, "churn_bundle.joblib"))
-_CHURN_MODEL = _BUNDLE["churn_model"]
-_CALIB_MODEL = _BUNDLE.get("calib_model")
-_FEATURES = _BUNDLE["features"]                                     # 모델 입력 피처 순서(16개)
-_CONG_MAP = _BUNDLE.get("cong_map", {"여유": 1, "보통": 2, "혼잡": 3, "매우혼잡": 4})
-_TIER_EDGES = _BUNDLE.get("tier_edges", [25, 45, 65])
-_TIER_NAMES = _BUNDLE.get("tier_names", ["안정", "관찰", "개입", "긴급"])
-_EXPLAINER = shap.TreeExplainer(_CHURN_MODEL)
+try:
+    _BUNDLE = joblib.load(os.path.join(HERE, "churn_bundle.joblib"))
+    _CHURN_MODEL = _BUNDLE["churn_model"]
+    _CALIB_MODEL = _BUNDLE.get("calib_model")
+    _FEATURES = _BUNDLE["features"]                                     # 모델 입력 피처 순서(16개)
+    _CONG_MAP = _BUNDLE.get("cong_map", {"여유": 1, "보통": 2, "혼잡": 3, "매우혼잡": 4})
+    _TIER_EDGES = _BUNDLE.get("tier_edges", [25, 45, 65])
+    _TIER_NAMES = _BUNDLE.get("tier_names", ["안정", "관찰", "개입", "긴급"])
+    _EXPLAINER = shap.TreeExplainer(_CHURN_MODEL)
+    IS_MOCK_MODEL = False
+except FileNotFoundError:
+    print("[경고] churn_bundle.joblib 모델 파일을 찾을 수 없습니다. 시뮬레이터용 모의 모델로 구동합니다.")
+    class MockModel:
+        def predict_proba(self, X):
+            np.random.seed(42)
+            p = np.random.uniform(0.1, 0.8, size=len(X))
+            return np.column_stack([1 - p, p])
+    
+    class MockExplainer:
+        def shap_values(self, X):
+            np.random.seed(42)
+            return np.random.normal(0, 0.2, size=(len(X), 16))
+
+    _CHURN_MODEL = MockModel()
+    _CALIB_MODEL = None
+    _FEATURES = [
+        "나이", "총_이용개월수", "이번달_주당방문횟수", "최근한달_일평균_운동시간", "PT_가입여부",
+        "그룹수업_참여", "주_이용_시간대_혼잡도", "마지막_방문_경과일", "서비스불만_비매너회원",
+        "서비스불만_환경불편", "가격불만", "기구불만_기구상태불만", "기구불만_기구부족",
+        "직원불만_불친절", "직원불만_전문성부족", "최근한달_부상경험"
+    ]
+    _CONG_MAP = {"여유": 1, "보통": 2, "혼잡": 3, "매우혼잡": 4}
+    _TIER_EDGES = [25, 45, 65]
+    _TIER_NAMES = ["안정", "관찰", "개입", "긴급"]
+    _EXPLAINER = MockExplainer()
+    IS_MOCK_MODEL = True
 
 
 # ─────────────────────────── DB 설정 ───────────────────────────
