@@ -5,274 +5,253 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FitBuddy AI - 스마트 피트니스 케어 플랫폼</title>
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/type/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- FontAwesome for Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Poppins:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
     <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
     <style>
         :root {
-            --bg-color: #0b0f19;
-            --card-bg: rgba(25, 32, 56, 0.6);
+            --bg-color: #080c14;
+            --card-bg: rgba(17, 24, 39, 0.7);
             --border-color: rgba(255, 255, 255, 0.08);
-            --primary-glow: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%);
-            --accent-purple: #a855f7;
-            --accent-cyan: #06b6d4;
+            --primary-glow: linear-gradient(135deg, #d946ef 0%, #3b82f6 50%, #10b981 100%);
+            --accent-purple: #c084fc;
+            --accent-cyan: #38bdf8;
             --accent-pink: #f43f5e;
+            --accent-green: #34d399;
+            --accent-yellow: #fbbf24;
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
         }
 
         body {
-            font-family: 'Outfit', 'Poppins', sans-serif;
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             overflow-x: hidden;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.15) 0px, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(217, 70, 239, 0.12) 0px, transparent 40%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 40%),
+                radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
             background-attachment: fixed;
         }
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 10px;
+            width: 8px;
         }
         ::-webkit-scrollbar-track {
             background: var(--bg-color);
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(168, 85, 247, 0.3);
-            border-radius: 5px;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(168, 85, 247, 0.6);
+            background: rgba(217, 70, 239, 0.6);
         }
 
-        /* Glassmorphic Cards */
+        /* Premium Glassmorphic Card */
         .glass-card {
             background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transition: all 0.6s ease;
+        }
+        .glass-card:hover::before {
+            left: 150%;
         }
         .glass-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(6, 182, 212, 0.3);
-            box-shadow: 0 12px 40px 0 rgba(6, 182, 212, 0.15);
+            transform: translateY(-8px) scale(1.01);
+            border-color: rgba(56, 189, 248, 0.25);
+            box-shadow: 0 25px 50px rgba(56, 189, 248, 0.15);
         }
 
-        /* Gradient Text */
+        /* Interactive Glow Typography */
         .gradient-text {
             background: var(--primary-glow);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .glow-title {
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
         }
 
-        /* Navbar Styling */
+        /* Custom Navigation */
+        .navbar {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(8, 12, 20, 0.8) !important;
+            padding: 18px 0;
+        }
         .navbar-brand {
-            font-weight: 800;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             letter-spacing: -0.5px;
         }
-        .navbar {
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-color);
-        }
 
-        /* Hero Section Mascot Floating */
+        /* Interactive Chibi Mascot */
         .mascot-container {
             position: relative;
             display: inline-block;
+            cursor: pointer;
         }
         .mascot-img {
             max-width: 320px;
             animation: float 4s ease-in-out infinite;
-            filter: drop-shadow(0 15px 25px rgba(168, 85, 247, 0.3));
+            filter: drop-shadow(0 15px 30px rgba(217, 70, 239, 0.4));
+            transition: all 0.3s ease;
+        }
+        .mascot-container:hover .mascot-img {
+            transform: scale(1.05);
+            filter: drop-shadow(0 20px 45px rgba(56, 189, 248, 0.6));
         }
         @keyframes float {
             0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(2deg); }
+            50% { transform: translateY(-16px) rotate(3deg); }
             100% { transform: translateY(0px) rotate(0deg); }
         }
 
         .speech-bubble {
             position: absolute;
-            top: -20px;
-            right: -40px;
+            top: -15px;
+            right: -30px;
             background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            color: #080c14;
             color: white;
-            padding: 12px 20px;
-            border-radius: 20px 20px 20px 0px;
-            font-weight: 600;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            padding: 14px 22px;
+            border-radius: 24px 24px 24px 0px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3);
             animation: bounceIn 1s;
+            pointer-events: none;
+            white-space: nowrap;
         }
 
-        /* Custom Buttons */
-        .btn-gradient {
+        /* Cute Character State Buttons */
+        .buddy-state-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .buddy-state-btn:hover, .buddy-state-btn.active {
+            background: var(--accent-cyan);
+            color: #080c14;
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+
+        /* Futuristic Neon Buttons */
+        .btn-glow {
             background: var(--primary-glow);
             color: white;
             border: none;
-            font-weight: 600;
-            padding: 12px 28px;
-            border-radius: 12px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+            font-weight: 700;
+            padding: 14px 32px;
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
         }
-        .btn-gradient:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.6);
+        .btn-glow:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 15px 30px rgba(217, 70, 239, 0.5);
             color: white;
         }
 
-        /* Circular Stat Indicators */
+        /* Circular Stat Indicator */
         .circle-progress {
             position: relative;
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             margin: 0 auto;
         }
         .circle-progress svg {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             transform: rotate(-90deg);
         }
         .circle-progress circle {
             fill: none;
-            stroke-width: 8;
+            stroke-width: 10;
             stroke-linecap: round;
         }
         .circle-bg {
-            stroke: rgba(255, 255, 255, 0.05);
+            stroke: rgba(255, 255, 255, 0.04);
         }
         .circle-bar {
-            stroke: var(--accent-cyan);
-            stroke-dasharray: 251.2;
-            stroke-dashoffset: 80; /* Animation target */
-            transition: stroke-dashoffset 1s ease-in-out;
+            stroke: url(#cyan-purple-grad);
+            stroke-dasharray: 314;
+            stroke-dashoffset: 314;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .circle-text {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-weight: bold;
-            font-size: 1.2rem;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--text-main);
         }
 
-        /* Interactive Chat Widget */
-        .chat-widget {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-        }
-        .chat-button {
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            background: var(--primary-glow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 25px rgba(168, 85, 247, 0.5);
+        /* Golden Confetti Ticket Coupon Box */
+        .coupon-box {
+            position: relative;
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.1) 0%, rgba(192, 132, 252, 0.1) 100%);
+            border: 2px dashed rgba(244, 63, 94, 0.5);
+            border-radius: 20px;
+            padding: 35px 25px;
+            text-align: center;
             cursor: pointer;
+            overflow: hidden;
             transition: all 0.3s;
         }
-        .chat-button:hover {
-            transform: scale(1.1) rotate(15deg);
+        .coupon-box:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-pink);
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(192, 132, 252, 0.18) 100%);
+            box-shadow: 0 15px 30px rgba(244, 63, 94, 0.25);
         }
-        .chat-window {
-            position: absolute;
-            bottom: 80px;
-            right: 0;
-            width: 380px;
-            height: 500px;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .coupon-gift-icon {
+            font-size: 3.5rem;
+            color: var(--accent-pink);
+            animation: wobble 2s infinite;
         }
-        @keyframes slideUp {
-            from { transform: translateY(50px) scale(0.8); opacity: 0; }
-            to { transform: translateY(0) scale(1); opacity: 1; }
+        @keyframes wobble {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            15% { transform: rotate(-12deg) scale(1.05); }
+            30% { transform: rotate(12deg) scale(1.05); }
+            45% { transform: rotate(-8deg) scale(1); }
+            60% { transform: rotate(8deg) scale(1); }
         }
-        .chat-header {
-            background: var(--primary-glow);
-            padding: 15px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .chat-messages {
-            flex-grow: 1;
-            padding: 15px;
-            overflow-y: auto;
-            background: rgba(15, 23, 42, 0.95);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .msg {
-            max-width: 80%;
-            padding: 10px 14px;
-            border-radius: 15px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
-        .msg-buddy {
-            background: rgba(255,255,255,0.08);
-            align-self: flex-start;
-            border-bottom-left-radius: 0;
-        }
-        .msg-user {
-            background: var(--accent-purple);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 0;
-        }
-        .chat-input-area {
-            display: flex;
-            padding: 10px;
-            background: rgba(30, 41, 59, 0.8);
-            border-top: 1px solid var(--border-color);
-        }
-        .chat-input-area input {
-            flex-grow: 1;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: white;
-            padding: 8px 12px;
-            outline: none;
-        }
-        .chat-input-area button {
-            background: var(--accent-cyan);
-            border: none;
-            color: white;
-            border-radius: 8px;
-            width: 40px;
-            margin-left: 8px;
-            transition: 0.2s;
-        }
-        .chat-input-area button:hover {
-            background: var(--accent-purple);
-        }
-
-        /* Confetti Effect for Coupon Claim */
         .confetti {
             position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: #f39c12;
+            width: 8px;
+            height: 8px;
             opacity: 0;
             animation: fall 3s infinite linear;
         }
@@ -281,88 +260,263 @@
             100% { top: 110%; opacity: 0; transform: rotate(360deg); }
         }
 
-        /* Live Badge Pulse */
+        /* Live Pulse Indicator Badge */
         .pulse-badge {
             display: inline-block;
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background-color: #10b981;
+            background-color: var(--accent-green);
             box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
             animation: pulse 1.5s infinite;
-            margin-right: 6px;
+            margin-right: 8px;
         }
         @keyframes pulse {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
-        /* Coupon Box Animation */
-        .coupon-box {
-            position: relative;
-            background: linear-gradient(135deg, rgba(244, 63, 94, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
-            border: 2px dashed var(--accent-pink);
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
+        /* Chat Widget & Window */
+        .chat-widget {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+        .chat-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--primary-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
             cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .chat-button:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+        .chat-window {
+            position: absolute;
+            bottom: 85px;
+            right: 0;
+            width: 400px;
+            height: 520px;
+            display: none;
+            flex-direction: column;
             overflow: hidden;
-            transition: all 0.3s;
+            animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
-        .coupon-box:hover {
-            transform: scale(1.02);
-            border-color: #fff;
+        @keyframes slideUp {
+            from { transform: translateY(50px) scale(0.85); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
         }
-        .coupon-gift-icon {
-            font-size: 3rem;
-            color: var(--accent-pink);
-            animation: wobble 2s infinite;
+        .chat-header {
+            background: linear-gradient(135deg, rgba(217, 70, 239, 0.9) 0%, rgba(59, 130, 246, 0.9) 100%);
+            padding: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        @keyframes wobble {
-            0%, 100% { transform: rotate(0deg); }
-            15% { transform: rotate(-10deg); }
-            30% { transform: rotate(10deg); }
-            45% { transform: rotate(-5deg); }
-            60% { transform: rotate(5deg); }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: rgba(8, 12, 20, 0.98);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .msg {
+            max-width: 82%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+        .msg-buddy {
+            background: rgba(255, 255, 255, 0.05);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .msg-user {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            color: #080c14;
+            font-weight: 600;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+        }
+        .chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 15px 10px 15px;
+            background: rgba(8, 12, 20, 0.98);
+        }
+        .chat-chip {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            color: var(--accent-cyan);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chat-chip:hover {
+            background: var(--accent-cyan);
+            color: #080c14;
+            transform: translateY(-1px);
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 12px;
+            background: rgba(17, 24, 39, 0.9);
+            border-top: 1px solid var(--border-color);
+        }
+        .chat-input-area input {
+            flex-grow: 1;
+            background: rgba(8, 12, 20, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: white;
+            padding: 10px 16px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+        .chat-input-area button {
+            background: var(--accent-cyan);
+            border: none;
+            color: #080c14;
+            font-weight: bold;
+            border-radius: 12px;
+            width: 46px;
+            margin-left: 10px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-input-area button:hover {
+            background: var(--accent-purple);
+            transform: scale(1.05);
+        }
+
+        /* Success Checkmark Animation */
+        .success-checkmark {
+            width: 80px;
+            height: 115px;
+            margin: 0 auto;
+        }
+        .check-icon {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            border-radius: 50%;
+            box-sizing: content-box;
+            border: 4px solid var(--accent-green);
+        }
+        .check-icon::after {
+            content: '';
+            position: absolute;
+            top: 14px; left: 32px;
+            width: 14px; height: 35px;
+            border: solid var(--accent-green);
+            border-width: 0 4px 4px 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+
+        /* Keyboard Simulator Theme */
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 240px;
+            margin: 15px auto 0 auto;
+        }
+        .keypad-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .keypad-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
         }
     </style>
 </head>
 <body>
 
+    <!-- SVG Definitions for Gradients -->
+    <svg style="width:0; height:0; position:absolute;" aria-hidden="true" focusable="false">
+        <linearGradient id="cyan-purple-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8" />
+            <stop offset="100%" stop-color="#d946ef" />
+        </linearGradient>
+    </svg>
+
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
+            <a class="navbar-brand d-flex align-items-center fw-bold" href="#">
                 <i class="fa-solid fa-heart-pulse me-2 text-info animate__animated animate__pulse animate__infinite"></i>
                 <span class="gradient-text">FitBuddy AI</span>
             </a>
             <div class="d-flex align-items-center">
-                <span class="badge bg-secondary d-flex align-items-center px-3 py-2 rounded-pill">
+                <span class="badge bg-dark border border-secondary d-flex align-items-center px-3 py-2 rounded-pill">
                     <span class="pulse-badge"></span>
-                    <span id="server-status">연결 확인 중...</span>
+                    <span id="server-status" class="fw-bold">연결 상태 점검 중...</span>
                 </span>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <header class="py-5 my-4">
+    <header class="py-5 my-2">
         <div class="container">
             <div class="row align-items-center">
+                <!-- Text Area -->
                 <div class="col-lg-6 text-center text-lg-start animate__animated animate__fadeInLeft">
-                    <h1 class="display-3 fw-bold mb-3">AI와 캐릭터로 더<br><span class="gradient-text">즐거운 피트니스 케어</span></h1>
-                    <p class="lead text-muted mb-4">FitBuddy는 실시간 출결 체크, 지능형 정산 분석, 그리고 귀여운 AI 코치 버디(Buddy)가 함께하는 차세대 지능형 체육관 관리 플랫폼입니다.</p>
+                    <span class="badge bg-secondary px-3 py-2 rounded-pill mb-3 text-info fw-bold">v2.5 스마트 피트니스 플랫폼</span>
+                    <h1 class="display-3 fw-bold mb-3">AI와 캐릭터로 더<br><span class="gradient-text glow-title">즐거운 피트니스 케어</span></h1>
+                    <p class="lead text-muted mb-4" style="line-height: 1.8;">
+                        FitBuddy는 지능형 출결 체크인, AI 기반의 회원 이탈 위험 예측 진단, 그리고 귀여운 캐릭터 AI 코치 <strong>버디(Buddy)</strong>가 함께 러닝을 돕는 통합 스마트 헬스장 솔루션입니다.
+                    </p>
                     <div class="d-flex gap-3 justify-content-center justify-content-lg-start">
-                        <a href="#checkin-section" class="btn btn-gradient btn-lg"><i class="fa-solid fa-qrcode me-2"></i>모바일 출결하기</a>
-                        <a href="#coupon-section" class="btn btn-outline-light btn-lg rounded-pill"><i class="fa-solid fa-gift me-2"></i>혜택 받기</a>
+                        <a href="#checkin-section" class="btn btn-glow"><i class="fa-solid fa-qrcode me-2"></i>모바일 출결하기</a>
+                        <a href="#coupon-section" class="btn btn-outline-light btn-lg rounded-pill px-4" style="border-radius:16px !important;"><i class="fa-solid fa-gift me-2 text-danger animate__animated animate__bounce animate__infinite"></i>특별 특전 받기</a>
                     </div>
                 </div>
+                
+                <!-- Mascot & Speech Room -->
                 <div class="col-lg-6 text-center mt-5 mt-lg-0 animate__animated animate__fadeInRight">
-                    <div class="mascot-container">
-                        <img src="./assets/images/mascot.png" alt="Buddy Mascot" class="mascot-img">
-                        <div class="speech-bubble">
-                            오운완 하러 가볼까요? 🐾
+                    <div class="glass-card p-4 d-inline-block">
+                        <div class="mascot-container" onclick="triggerMascotSpeak()">
+                            <img src="./assets/images/mascot.png" alt="Buddy Mascot" class="mascot-img" id="buddy-mascot">
+                            <div class="speech-bubble" id="buddy-speech">
+                                반가워요! 오운완 하러 가볼까요? 🐾
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <button class="buddy-state-btn active" id="state-norm" onclick="changeBuddyState('normal')">🐾 기본</button>
+                            <button class="buddy-state-btn" id="state-run" onclick="changeBuddyState('run')">💪 훈련</button>
+                            <button class="buddy-state-btn" id="state-sleep" onclick="changeBuddyState('sleep')">💤 휴식</button>
                         </div>
                     </div>
                 </div>
@@ -370,246 +524,246 @@
         </div>
     </header>
 
-    <!-- Interactive Dashboard & Checkin -->
+    <!-- Main Section -->
     <main class="container py-5">
         
-        <!-- Live Gym Status Section -->
+        <!-- Live Gym Indicators -->
         <section class="row g-4 mb-5">
-            <div class="col-md-4">
-                <div class="glass-card p-4 text-center">
+            <!-- Circular Occupancy -->
+            <div class="col-lg-4 col-md-6">
+                <div class="glass-card p-4 text-center h-100 d-flex flex-column justify-content-center align-items-center">
                     <div class="circle-progress mb-3">
                         <svg>
-                            <circle class="circle-bg" cx="50" cy="50" r="40"></circle>
-                            <circle class="circle-bar" id="capacity-bar" cx="50" cy="50" r="40" style="stroke-dashoffset: 125;"></circle>
+                            <circle class="circle-bg" cx="60" cy="60" r="50"></circle>
+                            <circle class="circle-bar" id="capacity-bar" cx="60" cy="60" r="50"></circle>
                         </svg>
-                        <div class="circle-text" id="capacity-text">50%</div>
+                        <div class="circle-text" id="capacity-text">60%</div>
                     </div>
-                    <h4>실시간 헬스장 혼잡도</h4>
-                    <p class="text-muted mb-0">현재 이용 인원: <span id="current-users-count">25</span>명</p>
+                    <h4 class="fw-bold mb-1">지점 이용 혼잡도</h4>
+                    <p class="text-muted mb-0">현재 이용 정원 대비: <strong id="current-users-count" class="text-info">30</strong>명 입장 중</p>
                 </div>
             </div>
-            <div class="col-md-4">
+
+            <!-- Attendance stats -->
+            <div class="col-lg-4 col-md-6">
                 <div class="glass-card p-4 d-flex align-items-center justify-content-between h-100">
                     <div>
-                        <h5 class="text-muted">오늘 총 출석</h5>
-                        <h2 class="fw-bold" id="total-attendance-count">142 명</h2>
-                        <span class="text-success fw-bold"><i class="fa-solid fa-arrow-trend-up"></i> 어제 대비 +12%</span>
+                        <h5 class="text-muted fw-bold mb-1">오늘 누적 출석</h5>
+                        <h1 class="fw-extrabold text-info animate__animated" id="total-attendance-count">142 명</h1>
+                        <span class="badge bg-success-subtle text-success px-2 py-1 mt-2 rounded-pill"><i class="fa-solid fa-circle-arrow-up"></i> 어제 대비 +12%</span>
                     </div>
-                    <div class="fs-1 text-info"><i class="fa-solid fa-users"></i></div>
+                    <div class="fs-1 text-info opacity-75"><i class="fa-solid fa-users"></i></div>
                 </div>
             </div>
-            <div class="col-md-4">
+
+            <!-- Expiring Member Stats -->
+            <div class="col-lg-4 col-md-12">
                 <div class="glass-card p-4 d-flex align-items-center justify-content-between h-100">
                     <div>
-                        <h5 class="text-muted">이번 달 신규 계약</h5>
-                        <h2 class="fw-bold">54 건</h2>
-                        <span class="text-primary fw-bold"><i class="fa-solid fa-medal"></i> 목표치 90% 달성</span>
+                        <h5 class="text-muted fw-bold mb-1">재계약 대상 회원 (30일 내)</h5>
+                        <h1 class="fw-extrabold text-warning">8 명</h1>
+                        <span class="badge bg-warning-subtle text-warning px-2 py-1 mt-2 rounded-pill"><i class="fa-solid fa-bell"></i> 만료 임박 알림 활성</span>
                     </div>
-                    <div class="fs-1 text-warning"><i class="fa-solid fa-file-signature"></i></div>
+                    <div class="fs-1 text-warning opacity-75"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                 </div>
             </div>
         </section>
 
-        <!-- Checkin Simulator -->
+        <!-- Kiosk Simulator Console -->
         <section id="checkin-section" class="row mb-5 justify-content-center">
             <div class="col-lg-8">
                 <div class="glass-card p-5 animate__animated animate__fadeInUp">
                     <div class="text-center mb-4">
-                        <span class="badge bg-info px-3 py-2 text-uppercase mb-2">Check-In / Out</span>
-                        <h2 class="fw-bold">스마트 출결 시뮬레이터</h2>
-                        <p class="text-muted">회원번호(전화번호 숫자)를 입력하여 가상 출결 체크인을 해보세요!</p>
+                        <span class="badge bg-info-subtle text-info px-3 py-2 rounded-pill mb-2 fw-bold text-uppercase">Check-In Kiosk</span>
+                        <h2 class="fw-bold">스마트 출결 키오스크 시뮬레이터</h2>
+                        <p class="text-muted">회원번호(전화번호 또는 임의 번호)를 입력하거나 우측 키패드로 간편 출결해보세요.</p>
                     </div>
                     
-                    <div class="row justify-content-center">
-                        <div class="col-md-8">
-                            <div class="input-group mb-3 shadow">
-                                <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-phone"></i></span>
-                                <input type="text" id="member-id-input" class="form-control bg-dark border-secondary text-light py-3" placeholder="예: 99990001 (DB 회원번호)" value="99990001">
+                    <div class="row align-items-center">
+                        <!-- Controls and Console -->
+                        <div class="col-md-7">
+                            <div class="input-group mb-3 shadow-lg">
+                                <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-user-check"></i></span>
+                                <input type="text" id="member-id-input" class="form-control bg-dark border-secondary text-light py-3 fw-bold" placeholder="회원번호 입력" value="99990001">
                             </div>
                             <div class="row g-2">
                                 <div class="col-6">
-                                    <button onclick="handleCheckIn()" class="btn btn-gradient w-100 py-3"><i class="fa-solid fa-right-to-bracket me-2"></i>입장하기</button>
+                                    <button onclick="handleCheckIn()" class="btn btn-glow w-100 py-3"><i class="fa-solid fa-right-to-bracket me-2"></i>입장하기</button>
                                 </div>
                                 <div class="col-6">
                                     <button onclick="handleCheckOut()" class="btn btn-outline-info w-100 py-3"><i class="fa-solid fa-right-from-bracket me-2"></i>퇴장하기</button>
                                 </div>
                             </div>
+                            
+                            <!-- Log terminal -->
+                            <div id="console-output" class="mt-4 p-3 bg-dark border border-secondary rounded font-monospace text-success" style="display:none; max-height:140px; overflow-y:auto; font-size:0.82rem;">
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Output Console -->
-                    <div id="console-output" class="mt-4 p-3 bg-dark border border-secondary rounded text-success font-monospace" style="display:none; max-height:150px; overflow-y:auto; font-size:0.9rem;">
+                        
+                        <!-- Mini Keypad -->
+                        <div class="col-md-5 text-center mt-4 mt-md-0">
+                            <div class="keypad-grid">
+                                <button class="keypad-btn" onclick="pressKey('1')">1</button>
+                                <button class="keypad-btn" onclick="pressKey('2')">2</button>
+                                <button class="keypad-btn" onclick="pressKey('3')">3</button>
+                                <button class="keypad-btn" onclick="pressKey('4')">4</button>
+                                <button class="keypad-btn" onclick="pressKey('5')">5</button>
+                                <button class="keypad-btn" onclick="pressKey('6')">6</button>
+                                <button class="keypad-btn" onclick="pressKey('7')">7</button>
+                                <button class="keypad-btn" onclick="pressKey('8')">8</button>
+                                <button class="keypad-btn" onclick="pressKey('9')">9</button>
+                                <button class="keypad-btn text-danger" onclick="pressKey('C')">C</button>
+                                <button class="keypad-btn" onclick="pressKey('0')">0</button>
+                                <button class="keypad-btn text-info" onclick="pressKey('E')">←</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Memberships & Coupons -->
+        <!-- Golden Coupon Offer & Suggestion Form -->
         <section class="row g-4 mb-5">
-            <!-- Left: Active Membership List -->
-            <div class="col-lg-6">
-                <div class="glass-card p-4 h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold mb-0"><i class="fa-solid fa-address-card me-2 text-info"></i>가입 회원 멤버십 목록</h4>
-                        <button onclick="loadMemberships()" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-rotate me-1"></i>갱신</button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>회원ID</th>
-                                    <th>이름</th>
-                                    <th>멤버십 구분</th>
-                                    <th>지점</th>
-                                    <th>상태</th>
-                                </tr>
-                            </thead>
-                            <tbody id="membership-list-body">
-                                <tr>
-                                    <td>99990001</td>
-                                    <td>홍길동</td>
-                                    <td>VIP 12개월</td>
-                                    <td>강남점</td>
-                                    <td><span class="badge bg-success">ACTIVE</span></td>
-                                </tr>
-                                <tr>
-                                    <td>99990002</td>
-                                    <td>김철수</td>
-                                    <td>기본 3개월</td>
-                                    <td>종로점</td>
-                                    <td><span class="badge bg-success">ACTIVE</span></td>
-                                </tr>
-                                <tr>
-                                    <td>99990003</td>
-                                    <td>이영희</td>
-                                    <td>PT 20회</td>
-                                    <td>서초점</td>
-                                    <td><span class="badge bg-warning text-dark">PENDING</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Interactive Coupon Box -->
+            <!-- Left: Interactive Gold Ticket Coupon -->
             <div class="col-lg-6" id="coupon-section">
                 <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
                     <div>
-                        <h4 class="fw-bold mb-3"><i class="fa-solid fa-tags me-2 text-danger"></i>스페셜 멤버십 쿠폰 받기</h4>
-                        <p class="text-muted">아래 선물 상자를 클릭하여 지점 특별 할인 쿠폰을 획득해보세요! 버디가 드리는 특전 혜택입니다.</p>
+                        <h4 class="fw-bold mb-3"><i class="fa-solid fa-ticket me-2 text-danger"></i>버디 특전: PT 무료 체험권</h4>
+                        <p class="text-muted">아래 선물 골든 티켓을 터치하여 지점에서 사용 가능한 일대일 PT 체험권을 획득하세요!</p>
                     </div>
                     
                     <div class="coupon-box shadow my-3" id="gift-box" onclick="claimCoupon()">
                         <div class="coupon-gift-icon mb-2">
-                            <i class="fa-solid fa-box-open" id="gift-icon"></i>
+                            <i class="fa-solid fa-gift" id="gift-icon"></i>
                         </div>
-                        <h5 class="fw-bold" id="gift-title">상자를 열어보세요!</h5>
-                        <p class="text-muted mb-0" id="gift-desc">클릭하여 선물 열기</p>
+                        <h5 class="fw-bold" id="gift-title">골든 박스를 열어보세요!</h5>
+                        <p class="text-muted mb-0" id="gift-desc">박스를 터치하여 티켓 획득</p>
                     </div>
 
                     <div class="text-center">
-                        <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>쿠폰 발급 내역은 CouponController API를 통해 저장 관리됩니다.</small>
+                        <small class="text-muted"><i class="fa-solid fa-lock me-1"></i>발급된 쿠폰 코드는 `CouponController` API를 통해 관리됩니다.</small>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Complaint Submission Box -->
-        <section class="row mb-5 justify-content-center">
-            <div class="col-lg-8">
-                <div class="glass-card p-4">
-                    <h4 class="fw-bold mb-3"><i class="fa-solid fa-comment-medical text-warning me-2"></i>불편 및 개선 사항 제안 (Gym Boss 소통창)</h4>
-                    <p class="text-muted">시설 이용 중 겪으신 불편이나 개선 필요 제안을 보내주시면 사장님 및 트레이너에게 즉시 전달됩니다.</p>
+            <!-- Right: Suggestion / Complaint Submission Box -->
+            <div class="col-lg-6">
+                <div class="glass-card p-4 h-100" id="complaint-card">
+                    <div id="complaint-form-area">
+                        <h4 class="fw-bold mb-3"><i class="fa-solid fa-envelope-open-text text-warning me-2"></i>Gym Boss 소통 제안창</h4>
+                        <p class="text-muted">헬스장 시설 이용 중 건의나 불편 사항을 적어 보내시면 관리자 및 트레이너에게 즉각 전달됩니다.</p>
+                        
+                        <form id="complaint-form" onsubmit="submitComplaint(event)">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted small fw-bold">회원 ID</label>
+                                    <input type="text" id="complaint-user" class="form-control bg-dark border-secondary text-light py-2" placeholder="예: 99990001" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted small fw-bold">건의 분류</label>
+                                    <select id="complaint-category" class="form-select bg-dark border-secondary text-light py-2">
+                                        <option value="EQUIPMENT">🛠️ 기구 상태 및 불만</option>
+                                        <option value="HYGIENE">🧹 시설 청결도 상태</option>
+                                        <option value="TRAINER">🧑‍🏫 트레이너 행동 및 건의</option>
+                                        <option value="OTHER">💡 기타 제안 사항</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-muted small fw-bold">제안 및 건의 상세 내역</label>
+                                    <textarea id="complaint-content" class="form-control bg-dark border-secondary text-light" rows="3" placeholder="소중한 의견을 들려주세요." required></textarea>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-outline-warning rounded-pill px-4 py-2"><i class="fa-solid fa-paper-plane me-2"></i>의견 전달하기</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                     
-                    <form id="complaint-form" onsubmit="submitComplaint(event)">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">회원 아이디</label>
-                                <input type="text" id="complaint-user" class="form-control bg-dark border-secondary text-light" placeholder="예: 99990001" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">카테고리</label>
-                                <select id="complaint-category" class="form-select bg-dark border-secondary text-light">
-                                    <option value="EQUIPMENT">기구 이상/노후</option>
-                                    <option value="HYGIENE">시설 청결 상태</option>
-                                    <option value="TRAINER">트레이너/직원 건의</option>
-                                    <option value="OTHER">기타 건의 사항</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">내용</label>
-                                <textarea id="complaint-content" class="form-control bg-dark border-secondary text-light" rows="3" placeholder="불편을 느끼신 세부 사항을 적어주세요." required></textarea>
-                            </div>
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-outline-warning rounded-pill px-4"><i class="fa-solid fa-paper-plane me-2"></i>의견 전달하기</button>
-                            </div>
+                    <!-- Success Animation Block -->
+                    <div id="complaint-success-area" class="text-center py-5" style="display:none;">
+                        <div class="success-checkmark">
+                            <div class="check-icon"></div>
                         </div>
-                    </form>
+                        <h4 class="fw-bold text-success mt-4">의견 전송 완료!</h4>
+                        <p class="text-muted mt-2">버디가 사장님께 소중한 의견을 직접 배달해 드렸습니다. 신속히 검토하도록 하겠습니다. 🐾</p>
+                        <button onclick="resetComplaintForm()" class="btn btn-sm btn-outline-secondary mt-3">추가 제안하기</button>
+                    </div>
                 </div>
             </div>
         </section>
 
     </main>
 
-    <!-- Floating Chat Widget -->
+    <!-- Floating Chatbot Widget -->
     <div class="chat-widget" id="chat-widget">
         <div class="chat-button" onclick="toggleChat()">
             <i class="fa-solid fa-comment-dots fs-3 text-light"></i>
         </div>
         <div class="chat-window glass-card" id="chat-window">
+            <!-- Header -->
             <div class="chat-header">
                 <div class="d-flex align-items-center">
-                    <img src="./assets/images/mascot.png" alt="Mascot Avatar" class="rounded-circle me-2 bg-light" style="width:32px; height:32px; object-fit:contain;">
-                    <span>AI 코치 버디 (Buddy)</span>
+                    <img src="./assets/images/mascot.png" alt="Mascot Avatar" class="rounded-circle me-2 bg-light" style="width:34px; height:34px; object-fit:contain;">
+                    <span>AI 코치 버디 (Buddy) 🐾</span>
                 </div>
                 <button class="btn-close btn-close-white" onclick="toggleChat()"></button>
             </div>
+            
+            <!-- Chat logs -->
             <div class="chat-messages" id="chat-messages">
                 <div class="msg msg-buddy">
-                    안녕하세요! 저는 지능형 피트니스 코치 **버디**예요! 오늘 운동 강도 추천이나 내 출석률 통계를 알려드릴까요? 🐾
+                    안녕하세요! 똑똑한 AI 코치 **버디**예요! 오늘 어떤 훈련 강도를 설계하고 싶으신가요? 🐾
                 </div>
             </div>
+
+            <!-- Question Chips -->
+            <div class="chip-container">
+                <span class="chat-chip" onclick="clickChatChip('오늘 운동 추천해줘!')">💪 운동 추천</span>
+                <span class="chat-chip" onclick="clickChatChip('내 이탈 위험도(Churn) 진단해줘!')">🔍 이탈 위험 검진</span>
+                <span class="chat-chip" onclick="clickChatChip('단백질 식단 추천해줘!')">🥗 식단 가이드</span>
+            </div>
+
+            <!-- Input area -->
             <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="메시지를 입력해 주세요..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                <input type="text" id="chat-input" placeholder="버디에게 질문해 보세요..." onkeydown="if(event.key==='Enter') sendChatMessage()">
                 <button onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap & Custom JS -->
+    <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     
     <script>
-        // Check API Status and fallback if offline
         let isLiveMode = false;
 
+        // Check backend server status on startup
         async function checkServerStatus() {
             try {
-                // Try checking the member idCheck endpoint or gym list
                 const response = await fetch('/gym/list');
                 if (response.ok) {
                     isLiveMode = true;
                     document.getElementById('server-status').innerText = '실시간 서버 연결 완료';
-                    document.getElementById('server-status').parentNode.classList.replace('bg-secondary', 'bg-success');
+                    document.getElementById('server-status').parentNode.classList.replace('border-secondary', 'border-success');
+                    document.getElementById('server-status').parentNode.classList.add('text-success');
                     console.log('FitBuddy connected to active Spring Boot backend.');
                 }
             } catch (e) {
                 isLiveMode = false;
                 document.getElementById('server-status').innerText = '시뮬레이터 모드 (DB 오프라인)';
-                document.getElementById('server-status').parentNode.classList.replace('bg-secondary', 'bg-warning');
-                document.getElementById('server-status').parentNode.classList.add('text-dark');
-                console.warn('Backend server is offline or database is paused. Switched to robust Client-side Simulator Mode.');
+                document.getElementById('server-status').parentNode.classList.replace('border-secondary', 'border-warning');
+                document.getElementById('server-status').parentNode.classList.add('text-warning');
+                console.warn('Backend server is offline. Switched to client-side simulator fallback mode.');
             }
         }
 
-        // Initialize Capacity and Stat Progress
+        // Initialize progress bar and status on DOM load
         window.addEventListener('DOMContentLoaded', () => {
             checkServerStatus();
-            setCapacity(65);
+            setCapacity(60);
         });
 
-        // Set circle progress animation
+        // Set circle progress bar
         function setCapacity(percent) {
             const circle = document.getElementById('capacity-bar');
             const text = document.getElementById('capacity-text');
@@ -621,22 +775,74 @@
             circle.style.strokeDashoffset = offset;
             text.innerText = `${percent}%`;
             
-            let capacityLabel = '쾌적';
-            if (percent > 80) capacityLabel = '혼잡';
-            else if (percent > 50) capacityLabel = '보통';
-            
             document.getElementById('current-users-count').innerText = Math.round(50 * (percent/100));
         }
 
-        // Handle Check-In Simulation
+        // Mascot interaction speech phrases
+        const buddyQuotes = [
+            "하체 운동은 스쿼트부터 시작인 거 아시죠? 🐾",
+            "조금 더 힘을 내서 오늘의 운동 루틴을 마무리해봐요! 💪",
+            "운동 끝난 뒤 30분 이내에 닭가슴살 섭취는 필수라멍! 🍖",
+            "포기하고 싶을 때 한 번 더 미는 것이 진정한 득근! 🔥",
+            "출석체크 후에 멋지게 덤벨을 들으러 가요! 🐾",
+            "오늘도 오운완 완료하고 시원하게 프로틴 한 잔 하자멍! 🥤"
+        ];
+
+        function triggerMascotSpeak() {
+            const bubble = document.getElementById('buddy-speech');
+            const randomQuote = buddyQuotes[Math.floor(Math.random() * buddyQuotes.length)];
+            bubble.innerText = randomQuote;
+            
+            const mascot = document.getElementById('buddy-mascot');
+            mascot.classList.add('animate__animated', 'animate__bounce');
+            setTimeout(() => mascot.classList.remove('animate__animated', 'animate__bounce'), 1000);
+        }
+
+        // Change mascot character states
+        function changeBuddyState(state) {
+            // Remove active states from buttons
+            document.querySelectorAll('.buddy-state-btn').forEach(btn => btn.classList.remove('active'));
+            const bubble = document.getElementById('buddy-speech');
+            const mascot = document.getElementById('buddy-mascot');
+
+            if (state === 'normal') {
+                document.getElementById('state-norm').classList.add('active');
+                bubble.innerText = "반가워요! 오운완 하러 가볼까요? 🐾";
+                mascot.style.filter = "drop-shadow(0 15px 30px rgba(217, 70, 239, 0.4))";
+            } else if (state === 'run') {
+                document.getElementById('state-run').classList.add('active');
+                bubble.innerText = "오늘 덤벨 숄더 프레스 도전!! 🏋️‍♀️🔥";
+                mascot.style.filter = "drop-shadow(0 15px 30px rgba(244, 63, 94, 0.6))";
+                mascot.classList.add('animate__animated', 'animate__shakeX');
+                setTimeout(() => mascot.classList.remove('animate__animated', 'animate__shakeX'), 1000);
+            } else if (state === 'sleep') {
+                document.getElementById('state-sleep').classList.add('active');
+                bubble.innerText = "잠깐 휴식을 취하면서 수분을 보충해라멍... 💤";
+                mascot.style.filter = "drop-shadow(0 15px 30px rgba(56, 189, 248, 0.4))";
+            }
+        }
+
+        // Keypad key presses
+        function pressKey(key) {
+            const input = document.getElementById('member-id-input');
+            if (key === 'C') {
+                input.value = '';
+            } else if (key === 'E') {
+                input.value = input.value.slice(0, -1);
+            } else {
+                input.value += key;
+            }
+        }
+
+        // Check-In simulation logic
         async function handleCheckIn() {
             const memberId = document.getElementById('member-id-input').value.trim();
             if (!memberId) {
-                showConsole('오류: 회원번호를 입력해 주세요.', 'danger');
+                showConsole('오류: 회원번호를 입력해주세요.', 'danger');
                 return;
             }
 
-            showConsole(`출석 체크인 요청 중... (ID: ${memberId})`, 'warning');
+            showConsole(`[체크인] 회원번호 ${memberId} 출석 조회를 서버에 요청하는 중...`, 'warning');
             
             if (isLiveMode) {
                 try {
@@ -645,32 +851,31 @@
                     });
                     const text = await response.text();
                     if (response.ok) {
-                        showConsole(`[서버 수신] ${text} (출석 완료!)`, 'success');
+                        showConsole(`[서버 처리 결과] ${text} (출석 체크 성공!)`, 'success');
                         triggerSuccessAnimations();
                     } else {
                         showConsole(`[서버 거부] ${text}`, 'danger');
                     }
                 } catch (e) {
-                    showConsole(`통신 실패: ${e.message}`, 'danger');
+                    showConsole(`서버 연동 실패: ${e.message}`, 'danger');
                 }
             } else {
-                // Simulator fallback
                 setTimeout(() => {
-                    showConsole(`[시뮬레이터] 회원번호 ${memberId} 출석 체크인 완료! (가상 데이터 처리)`, 'success');
+                    showConsole(`[시뮬레이터] 회원번호 ${memberId} 체크인 성공! (체육관에 입장하셨습니다)`, 'success');
                     triggerSuccessAnimations();
                 }, 800);
             }
         }
 
-        // Handle Check-Out Simulation
+        // Check-Out simulation logic
         async function handleCheckOut() {
             const memberId = document.getElementById('member-id-input').value.trim();
             if (!memberId) {
-                showConsole('오류: 회원번호를 입력해 주세요.', 'danger');
+                showConsole('오류: 회원번호를 입력해주세요.', 'danger');
                 return;
             }
 
-            showConsole(`출석 체크아웃 요청 중... (ID: ${memberId})`, 'warning');
+            showConsole(`[체크아웃] 회원번호 ${memberId} 퇴장 조회를 서버에 요청하는 중...`, 'warning');
 
             if (isLiveMode) {
                 try {
@@ -679,31 +884,29 @@
                     });
                     const text = await response.text();
                     if (response.ok) {
-                        showConsole(`[서버 수신] ${text} (퇴장 완료!)`, 'success');
-                        setCapacity(55);
+                        showConsole(`[서버 처리 결과] ${text} (퇴장 확인 완료!)`, 'success');
+                        setCapacity(45);
                     } else {
                         showConsole(`[서버 거부] ${text}`, 'danger');
                     }
                 } catch (e) {
-                    showConsole(`통신 실패: ${e.message}`, 'danger');
+                    showConsole(`서버 연동 실패: ${e.message}`, 'danger');
                 }
             } else {
                 setTimeout(() => {
-                    showConsole(`[시뮬레이터] 회원번호 ${memberId} 퇴장 처리 완료!`, 'success');
-                    setCapacity(Math.max(10, Math.floor(Math.random() * 40) + 15));
+                    showConsole(`[시뮬레이터] 회원번호 ${memberId} 퇴장 처리 완료! (조심히 귀가하세요)`, 'success');
+                    setCapacity(Math.max(15, Math.floor(Math.random() * 30) + 20));
                 }, 800);
             }
         }
 
         function triggerSuccessAnimations() {
-            setCapacity(Math.min(95, Math.floor(Math.random() * 20) + 70));
+            setCapacity(Math.min(98, Math.floor(Math.random() * 25) + 65));
             
-            // Randomly increments total attendance count
             const countEl = document.getElementById('total-attendance-count');
             let current = parseInt(countEl.innerText);
             countEl.innerText = `${current + 1} 명`;
             
-            // Add a flash animate
             countEl.classList.add('animate__animated', 'animate__flash');
             setTimeout(() => countEl.classList.remove('animate__animated', 'animate__flash'), 1000);
         }
@@ -712,50 +915,16 @@
             const consoleEl = document.getElementById('console-output');
             consoleEl.style.display = 'block';
             
-            let color = '#10b981'; // success
-            if (type === 'danger') color = '#ef4444';
-            if (type === 'warning') color = '#f59e0b';
+            let color = '#34d399'; // success
+            if (type === 'danger') color = '#f43f5e';
+            if (type === 'warning') color = '#fbbf24';
             
             const timestamp = new Date().toLocaleTimeString();
             consoleEl.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
-        // Load memberships list from backend
-        async function loadMemberships() {
-            if (isLiveMode) {
-                try {
-                    const response = await fetch('/membership/list', {
-                        headers: {
-                            'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
-                        }
-                    });
-                    if (response.ok) {
-                        const list = await response.json();
-                        const tbody = document.getElementById('membership-list-body');
-                        tbody.innerHTML = '';
-                        list.forEach(item => {
-                            tbody.innerHTML += `
-                                <tr>
-                                    <td>${item.receiverId || 'N/A'}</td>
-                                    <td>${item.receiverName || '회원'}</td>
-                                    <td>${item.contractType === 2 ? '트레이너 계약' : '일반 이용권'}</td>
-                                    <td>${item.gymId}번 지점</td>
-                                    <td><span class="badge ${item.status === 'ACTIVE' ? 'bg-success' : 'bg-warning'}">${item.status}</span></td>
-                                </tr>
-                            `;
-                        });
-                        showConsole('서버로부터 최신 멤버십 정보를 로드했습니다.', 'success');
-                    }
-                } catch (e) {
-                    showConsole('멤버십 갱신 중 에러 발생: ' + e.message, 'danger');
-                }
-            } else {
-                showConsole('시뮬레이터 모드: 가상의 멤버십 데이터가 표출되어 있습니다.', 'warning');
-            }
-        }
-
-        // Coupon Claim Logic with Confetti
+        // Confetti Ticket Claim
         function claimCoupon() {
             const giftBox = document.getElementById('gift-box');
             const giftIcon = document.getElementById('gift-icon');
@@ -764,51 +933,61 @@
 
             if (giftTitle.innerText.includes('발급 완료')) return;
 
-            // Change Icon to open
-            giftIcon.className = 'fa-solid fa-gifts animate__animated animate__rubberBand';
-            giftTitle.innerText = '🎁 PT 무료 체험 쿠폰 발급 완료!';
-            giftDesc.innerHTML = '쿠폰 코드: <strong class="text-white">BUDDY-PT-FREE</strong> (유효기간 30일)';
+            giftIcon.className = 'fa-solid fa-ticket animate__animated animate__rubberBand text-warning';
+            giftTitle.innerText = '🎟️ PT 1회 무료 이용권 발급 완료!';
+            giftDesc.innerHTML = '쿠폰 번호: <strong class="text-info">BUDDY-PT-FREE25</strong>';
             giftBox.style.borderColor = '#10b981';
-            giftBox.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)';
+            giftBox.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(6, 182, 212, 0.18) 100%)';
 
-            // Confetti explosion
             for (let i = 0; i < 40; i++) {
                 const confetti = document.createElement('div');
                 confetti.className = 'confetti';
                 confetti.style.left = `${Math.random() * 100}%`;
-                confetti.style.backgroundColor = ['#a855f7', '#06b6d4', '#f43f5e', '#fbbf24'][Math.floor(Math.random() * 4)];
+                confetti.style.backgroundColor = ['#c084fc', '#38bdf8', '#f43f5e', '#fbbf24'][Math.floor(Math.random() * 4)];
                 confetti.style.animationDelay = `${Math.random() * 2}s`;
                 confetti.style.animationDuration = `${Math.random() * 2 + 1}s`;
                 confetti.style.width = `${Math.random() * 10 + 6}px`;
                 confetti.style.height = `${Math.random() * 10 + 6}px`;
                 giftBox.appendChild(confetti);
             }
-            showConsole('버디 특전 쿠폰이 성공적으로 발급되었습니다!', 'success');
+            showConsole('AI 코치 버디의 특별 PT 쿠폰이 성공적으로 발행되었습니다!', 'success');
         }
 
-        // Complaint Form submission
+        // Complaint / Suggestion Box Logic
         function submitComplaint(e) {
             e.preventDefault();
             const user = document.getElementById('complaint-user').value;
             const category = document.getElementById('complaint-category').value;
             const content = document.getElementById('complaint-content').value;
 
-            showConsole(`건의사항 접수 중... (${category})`, 'warning');
+            showConsole(`건의 전달 접수 중... (카테고리: ${category})`, 'warning');
 
             setTimeout(() => {
-                showConsole('건의사항이 시스템에 성공적으로 등록되었습니다. 즉시 조치하도록 하겠습니다!', 'success');
-                document.getElementById('complaint-form').reset();
-                alert('버디가 소중한 의견을 사장님께 전달드렸습니다! 신속히 확인해볼게요! 🐾');
+                document.getElementById('complaint-form-area').style.display = 'none';
+                document.getElementById('complaint-success-area').style.display = 'block';
+                showConsole('건의 제안사항이 DB 및 사장님 알림함에 성공적으로 등록되었습니다!', 'success');
             }, 800);
         }
 
-        // Floating Chat Toggle
+        function resetComplaintForm() {
+            document.getElementById('complaint-form').reset();
+            document.getElementById('complaint-success-area').style.display = 'none';
+            document.getElementById('complaint-form-area').style.display = 'block';
+        }
+
+        // Chatbot Widget Toggle
         function toggleChat() {
             const chatWin = document.getElementById('chat-window');
             chatWin.style.display = chatWin.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // Chat Message Logic
+        // Chip Clicks
+        function clickChatChip(text) {
+            document.getElementById('chat-input').value = text;
+            sendChatMessage();
+        }
+
+        // AI Chatbot Logic
         async function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const messageText = input.value.trim();
@@ -816,7 +995,7 @@
 
             const chatMessages = document.getElementById('chat-messages');
 
-            // Append User Message
+            // User Message bubble
             const userMsg = document.createElement('div');
             userMsg.className = 'msg msg-user animate__animated animate__fadeInUp';
             userMsg.innerText = messageText;
@@ -824,7 +1003,7 @@
             input.value = '';
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Typing indicator or wait
+            // Typing bubble
             const buddyReply = document.createElement('div');
             buddyReply.className = 'msg msg-buddy animate__animated animate__fadeIn';
             buddyReply.innerHTML = '🐾 생각 중...';
@@ -842,7 +1021,7 @@
                         const data = await response.json();
                         buddyReply.innerHTML = data.reply || '답변을 받아오지 못했습니다.';
                     } else {
-                        buddyReply.innerHTML = '🐾 서버는 연결되었으나 AI 답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                        buddyReply.innerHTML = '🐾 서버는 작동 중이나 AI 답변 로드 중 오류가 발생했다멍. 잠시 후 재시도해 주세요.';
                     }
                 } catch (e) {
                     fallbackBuddyReply(messageText, buddyReply);
@@ -855,17 +1034,19 @@
         }
 
         function fallbackBuddyReply(query, el) {
-            let responseText = '멍멍! 어떤 질문인지 자세히 듣고 싶어요! 🐾 식단 관리나 오늘 근력 운동 가이드를 물어봐 주세요!';
+            let responseText = '🐾 멍멍! 운동 가이드, 식단 조언 또는 출결 현황이나 이탈 위험 점수 조회에 대해 대답해 드릴게요!';
             const q = query.toLowerCase();
 
             if (q.includes('안녕') || q.includes('hello')) {
-                responseText = '반가워요! 운동하기 딱 좋은 날씨네요! 오늘도 버디와 함께 화이팅해요! 💪🐶';
-            } else if (q.includes('운동') || q.includes('근력') || q.includes('헬스')) {
-                responseText = '오늘의 버디 추천 루틴: 스쿼트 4세트 + 벤치프레스 4세트 + 플랭크 3세트! 끝나고 단백질 챙겨 먹는 것 잊지 마세요! 🍖';
-            } else if (q.includes('출석') || q.includes('출결') || q.includes('이용권')) {
-                responseText = '스마트 출결 시뮬레이터로 입장하시면 오늘 출석 통계에 바로 반영됩니다! 회원번호를 입력하고 입장하기를 클릭해 보세요!';
-            } else if (q.includes('쿠폰') || q.includes('할인') || q.includes('선물')) {
-                responseText = '오른쪽의 선물 상자를 누르면 1:1 PT 무료 체험 쿠폰이 발급돼요! 어서 발급받으세요! 🎁🐾';
+                responseText = '안녕하세요! 오늘도 멋지게 운동할 준비가 되셨나요? 버디가 항상 곁에서 응원할게요! 💪🐶';
+            } else if (q.includes('추천') || q.includes('루틴') || q.includes('운동')) {
+                responseText = '🏋️‍♂️ **버디의 오늘 추천 근력 루틴**:<br>- 바벨 스쿼트 4세트 × 12회<br>- 레그 프레스 3세트 × 15회<br>- 레그 컬 3세트 × 12회<br>- 플랭크 3세트 × 1분<br><br>하체를 탄탄하게 훈련해 봅시다! 오운완 화이팅! 🐾';
+            } else if (q.includes('식단') || q.includes('닭가슴살') || q.includes('단백질')) {
+                responseText = '🥗 **버디의 스포츠 영양학 가이드**:<br>- 운동 전: 바나나 1개 + 아메리카노 1잔<br>- 운동 후: 닭가슴살 120g + 고구마 100g + 야채 샐러드<br><br>근육 합성을 위해 체중 1kg당 1.5g 수준의 단백질 공급을 권장해요!';
+            } else if (q.includes('이탈') || q.includes('위험') || q.includes('진단') || q.includes('churn')) {
+                responseText = '🔍 **AI 이탈 위험도(Churn) 진단**:<br>현재 회원님의 평균 주당 출석 일수는 **3.1회**로 양호한 등급이며, 마지막 방문 경과일이 **2일** 이내이므로 **[안정군]**에 위치하고 있습니다. 꾸준한 건강 관리를 응원해요!';
+            } else if (q.includes('쿠폰') || q.includes('체험권')) {
+                responseText = '골든 티켓 박스를 터치해 보세요! PT 무료 체험권이 즉시 발행됩니다. 🎁🎟️';
             }
 
             el.innerHTML = responseText;
