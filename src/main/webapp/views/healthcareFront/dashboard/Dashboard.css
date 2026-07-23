@@ -1,0 +1,582 @@
+/* 대시보드 — 디자인 시스템 v1.0 (본문 max 1080 중앙, 카드 radius 12, 차트 메인 = 액션 오렌지) */
+.dash-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 24px 64px;
+}
+
+/* 상단 줄 — 선택 위젯 칩(좌) + 위젯 편집 버튼(우) */
+.dash-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dash-chips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 삭제형 위젯 칩 — ✕는 기존 위젯 on/off 토글 API를 그대로 호출한다 */
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--gray-900);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.dash-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gray-400);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dash-chip__remove:hover {
+  color: var(--gray-900);
+}
+
+.dash-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--gray-700);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dash-edit-btn:hover {
+  background: var(--gray-100);
+}
+
+.dash-message {
+  margin-bottom: 12px;
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* 위젯 편집 모달(팝업) — 계약 페이지 모달과 동일 규격(딤 0.45 · 라운드 16 · 카드 그림자) */
+.dash-modal-back {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 23, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.dash-modal {
+  width: 420px;
+  max-width: 100%;
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--white);
+  color: var(--gray-900);
+  box-shadow: var(--shadow-lg);
+}
+
+.dash-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-modal__title {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: 700;
+}
+
+.dash-modal__close {
+  border: 0;
+  background: none;
+  padding: 4px;
+  color: var(--gray-500);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dash-modal__close:hover {
+  color: var(--gray-900);
+}
+
+.dash-modal__desc {
+  margin: 6px 0 12px;
+  color: var(--gray-500);
+  font-size: var(--text-sm);
+}
+
+.dash-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--gray-200);
+}
+
+.dash-modal__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 14px;
+}
+
+.dash-modal__list li.locked {
+  color: var(--gray-400);
+}
+
+.dash-modal__list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.dash-modal__list li.locked label {
+  cursor: not-allowed;
+}
+
+.dash-modal__order {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+}
+
+.dash-modal__order button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--gray-700);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dash-modal__order button:hover {
+  background: var(--gray-100);
+}
+
+.dash-modal__hint {
+  margin: 12px 0 0;
+  color: var(--gray-500);
+  font-size: var(--text-sm);
+}
+
+.dash-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.dash-modal__done {
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent-strong);
+  color: var(--white);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 위젯 카드 — 4열 그리드에 카드별 span 지정 (KPI 1 / 리스트 2 / 차트 4) */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.dash-grid > .dash-empty {
+  grid-column: 1 / -1;
+}
+
+.dash-card {
+  position: relative;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-card--kpi { grid-column: span 1; }
+.dash-card--list { grid-column: span 2; }
+.dash-card--chart { grid-column: span 4; }
+
+/* 클릭 이동 가능한 위젯 카드 (button 태그로 렌더 - 기본 버튼 스타일 리셋) */
+.dash-card--clickable {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dash-card--clickable:hover {
+  border-color: var(--gray-300);
+  background: var(--gray-50);
+}
+
+.dash-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dash-card h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* KPI 카드는 제목을 작은 라벨로 낮추고 수치를 주역으로 (목업 규격) */
+.dash-card--kpi h2 {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-500);
+}
+
+.dash-legend {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dash-legend--accent { color: var(--accent); }
+.dash-legend--gray { color: var(--gray-500); }
+.dash-legend--blue { color: #5B8DB8; }
+
+/* 쿠폰 사용 위젯 진행 바 */
+.dash-progress {
+  margin-top: 8px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gray-100);
+  overflow: hidden;
+}
+
+.dash-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.dash-kpi {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-kpi span {
+  font-size: 13px;
+  color: var(--gray-500);
+  font-weight: normal;
+}
+
+.dash-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+/* 전월 대비 증감 — 오름 빨강 / 내림 파랑 */
+.dash-delta {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dash-delta.up { color: var(--danger); }
+.dash-delta.down { color: var(--info); }
+
+.dash-empty {
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+/* 만료/세션 목록 */
+.dash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.dash-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.dash-list li + li {
+  border-top: 1px solid var(--gray-100);
+}
+
+.dash-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.dash-badge.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.dash-badge.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+/* 월별 막대 차트 — 목업: 높이 150, 막대 폭 16, 월 라벨만 표시 */
+.dash-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 8px;
+  height: 150px;
+  margin-top: 12px;
+}
+
+.dash-bar-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 100%;
+}
+
+.dash-bar {
+  width: 16px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+}
+
+.dash-bar--accent { background: var(--accent); }
+.dash-bar--gray { background: var(--gray-500); }
+.dash-bar--blue { background: #5B8DB8; }
+
+.dash-bar-month {
+  flex: none;
+  font-size: 11px;
+  color: var(--gray-400);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 월별 예측 이탈률 추이 위젯 — 그리드 전체 폭 사용 */
+.dash-card-wide {
+  grid-column: 1 / -1;
+}
+
+/* 헬스장 이탈율 위젯 — 좌: 이탈율 % KPI, 우: 위험도 분포 도넛 (세로 중앙 정렬) */
+/* 글씨(이탈율 %·분석)는 다른 카드처럼 좌상단 일반 흐름, 도넛만 카드 기준 세로 중앙 배치 */
+.gymchurn-card {
+  flex: 1;
+  min-height: 124px;
+}
+
+.gymchurn-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.gymchurn-donut {
+  position: absolute;
+  top: 50%;
+  right: 32px;
+  transform: translateY(-50%);
+}
+
+/* ===== AI 영역 (위젯 그리드 아래 좌우 분할, OWNER 전용) ===== */
+.dash-ai-zone {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.dash-ai-card {
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-ai-card h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 왼쪽: 질문 카드 4종 */
+.dash-ai-questions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: 1;
+}
+
+.dash-ai-question {
+  text-align: left;
+  border: 1px solid var(--gray-200);
+  border-radius: 9px;
+  background: var(--white);
+  padding: 12px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.dash-ai-question:hover {
+  border-color: var(--accent-soft);
+  background: var(--accent-bg);
+}
+
+.dash-ai-tag {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+  margin-bottom: 3px;
+}
+
+/* 오른쪽: 태스크 브리핑 */
+.dash-ai-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+}
+
+.dash-ai-task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--gray-200);
+  border-radius: 9px;
+  background: var(--white);
+  padding: 12px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.dash-ai-task:hover {
+  border-color: var(--gray-300);
+  background: var(--gray-50);
+}
+
+.dash-ai-task-sub {
+  margin-left: 18px;
+  width: calc(100% - 18px);
+  background: var(--gray-50);
+}
+
+.dash-ai-task-label {
+  flex: 1;
+}
+
+.dash-ai-task-go {
+  color: var(--gray-400);
+  font-size: 12px;
+}
+
+/* 영역 하단 동작 캡션 (질문=드로어 답변 / 브리핑=페이지 이동 혼동 방지) */
+.dash-ai-caption {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--gray-400);
+}
+
+/* 좁은 화면: 4열 → 2열로 접고 차트·리스트는 전폭 */
+@media (max-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-card--list,
+  .dash-card--chart {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-page {
+    padding: 16px 14px 48px;
+  }
+
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-card--kpi,
+  .dash-card--list,
+  .dash-card--chart {
+    grid-column: span 1;
+  }
+
+  .dash-ai-zone,
+  .dash-ai-questions {
+    grid-template-columns: 1fr;
+  }
+}
