@@ -459,4 +459,15 @@
             </if>
         </where>
     </select>
+
+    <!-- 지점 내 계약 만료 임박 회원 수 조회 SQL -->
+    <select id="expiringMemberCount" parameterType="long" resultType="map">
+        select 
+            coalesce(count(*), 0) as "count"
+        from "h_contract_data" d
+        where d.gym_id = #{gymId}
+          and d.contract in (3, 4, 5)
+          and d.status in ('SIGNED', 'ACTIVE')
+          and d.end_date between current_date and current_date + 30
+    </select>
 </mapper>

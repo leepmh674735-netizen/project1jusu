@@ -54,4 +54,6 @@ public interface ContractMapper {
 
 	public List<ContractDTO> rosterManagedList(ContractDTO contractDTO) throws Exception;
 
+	public Map<String, Object> expiringMemberCount(@Param("gymId") Long gymId) throws Exception;
+
 }

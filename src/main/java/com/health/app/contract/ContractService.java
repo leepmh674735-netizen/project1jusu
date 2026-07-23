@@ -324,4 +324,8 @@ public class ContractService {
 		return contractMapper.jobSeekingTrainers();
 	}
 
+	public Map<String, Object> expiringMemberCount(Long gymId) throws Exception {
+		contractSweep();
+		return contractMapper.expiringMemberCount(gymId);
+	}
 }

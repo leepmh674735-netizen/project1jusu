@@ -138,7 +138,7 @@ public class MemberService {
 
 	public Map<String, String> generatedLoginTokens(MemberDTO member) throws Exception {
 		String accessToken = jwtUtill.generateToken(member.getUsername().toString(), member.getRole());
-		String refreshToken = jwtUtill.generateToken(member.getUsername().toString());
+		String refreshToken = jwtUtill.generateRefreshToken(member.getUsername().toString());
 
 		RefreshTokenDTO tokenDTO = new RefreshTokenDTO();
 		tokenDTO.setUsername(member.getUsername());

@@ -23,8 +23,8 @@ public class JwtUtill {
 
 	public JwtUtill(
 			@Value("${jwt.secretKey}") String secretKey,
-			@Value("${jwt.accessValidTime}") long accessValidTime,
-			@Value("${jwt.refreshValidTime}") long refreshValidTime) {
+			@Value("${jwt.accessValidTime:1800000}") long accessValidTime,
+			@Value("${jwt.refreshValidTime:604800000}") long refreshValidTime) {
 		this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
 		this.time = accessValidTime;
 		this.refreshTime = refreshValidTime;
@@ -42,10 +42,6 @@ public class JwtUtill {
 				.compact();
 	}
 
-	public String generateToken(String username) throws Exception {
-		return generateRefreshToken(username);
-	}
-
 	public String generateRefreshToken(String username) throws Exception {
 		return Jwts.builder()
 				.setSubject(username)
@@ -60,11 +56,20 @@ public class JwtUtill {
 	}
 
 	public Claims extractAllClaims(String token) throws Exception {
-		return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+		return Jwts.parserBuilder()
+				.setSigningKey(key)
+				.build()
+				.parseClaimsJws(token)
+				.getBody();
 	}
 
 	public String extractUsername(String token) throws Exception {
 		return extractAllClaims(token).getSubject();
+	}
+
+	public String extractRole(String token) throws Exception {
+		Claims claims = extractAllClaims(token);
+		return (String) claims.get("role");
 	}
 
 	public boolean validateToken(String token, String username) throws Exception {
@@ -91,4 +96,5 @@ public class JwtUtill {
 	public boolean isRefreshTokenValid(String token) {
 		return !isTokenExpired(token);
 	}
+
 }
