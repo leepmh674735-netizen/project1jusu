@@ -2,6 +2,11 @@
 
 > **귀여운 캐릭터 마스코트와 AI 기술이 접목된 차세대 지능형 체육관/피트니스 센터 관리 플랫폼입니다.**
 
+## 🖥️ 홈페이지 프리뷰 (Main Landing Page)
+새롭게 디자인된 다크 글래스모피즘 기반 캐릭터 테마 홈페이지의 레이아웃입니다:
+
+![FitBuddy AI Homepage Preview](src/main/resources/static/assets/images/fitbuddy_landing_mockup.jpg)
+
 ---
 
 ## 🎨 메인 마스코트: 버디 (Buddy)
