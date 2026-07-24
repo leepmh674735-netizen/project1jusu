@@ -12,6 +12,7 @@ import lombok.ToString;
 public class ExpenseDTO {
 
 	private Long expenseId;
+	private Long username;
 	private Long gymId;
 	private Long dataId;
 	private String expenseName;
