@@ -1,10 +1,10 @@
 package com.health.app.coupon;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,16 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.health.app.config.JwtUtill;
 
 import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/coupon")
+@RequiredArgsConstructor
 public class CouponController {
 
-	@Autowired
-	private CouponService couponService;
-
-	@Autowired
-	private JwtUtill jwtUtill;
+	private final CouponService couponService;
+	private final JwtUtill jwtUtill;
 
 	private Long validateAndGetUsername(String authorization) {
 		if (authorization == null || !authorization.startsWith("Bearer ")) {
@@ -37,12 +36,27 @@ public class CouponController {
 			Claims claims = jwtUtill.extractAllClaims(authorization.substring(7));
 			return Long.parseLong(claims.getSubject());
 		} catch (Exception e) {
-			throw new IllegalArgumentException("유효하지 않는 토큰입니다.");
+			throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
 		}
 	}
 
-	@PostMapping("tolist")
-	public ResponseEntity<?> toList(@RequestHeader(value = "Authorization", required = false) String authorization,
+	@GetMapping("tolist")
+	public ResponseEntity<?> toList(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestParam(value = "username", required = false) Long username) throws Exception {
+		try {
+			Long loginUsername = validateAndGetUsername(authorization);
+			Long targetUsername = username != null ? username : loginUsername;
+			List<CouponDTO> list = couponService.toList(targetUsername);
+			return ResponseEntity.ok(list);
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+		}
+	}
+
+	@PostMapping("type/create")
+	public ResponseEntity<?> createCoupon(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestBody CouponTypeDTO typeDTO) throws Exception {
 		try {
 			validateAndGetUsername(authorization);
@@ -70,7 +84,8 @@ public class CouponController {
 	}
 
 	@PostMapping("send")
-	public ResponseEntity<?> sendCoupon(@RequestHeader(value = "Authorization", required = false) String authorization,
+	public ResponseEntity<?> sendCoupon(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestBody CouponDTO couponDTO) throws Exception {
 		try {
 			Long ownerId = validateAndGetUsername(authorization);
@@ -82,7 +97,7 @@ public class CouponController {
 			}
 			return ResponseEntity.badRequest().body("쿠폰 발송 실패");
 		} catch (IllegalArgumentException e) {
-			if (e.getMessage() != null && e.getMessage().contains("이미 사용하지 않는")) {
+			if (e.getMessage().contains("이미 사용하지 않은")) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 			}
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
@@ -93,7 +108,6 @@ public class CouponController {
 	public ResponseEntity<?> sendChurnTargets(
 			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestBody Map<String, Object> body) throws Exception {
-
 		try {
 			Long ownerId = validateAndGetUsername(authorization);
 			if (body.get("couponNum") == null || body.get("date") == null) {
@@ -101,21 +115,18 @@ public class CouponController {
 			}
 			Long couponNum = Long.valueOf(String.valueOf(body.get("couponNum")));
 			String couponName = body.get("couponName") == null ? null : String.valueOf(body.get("couponName"));
-			java.time.LocalDate date = java.time.LocalDate.parse(String.valueOf(body.get("date")));
+			LocalDate date = LocalDate.parse(String.valueOf(body.get("date")));
 
 			List<Long> usernames = new ArrayList<>();
 			Object raw = body.get("usernames");
 			if (raw instanceof List<?> list) {
-				for (Object o : list) {
-					usernames.add(Long.valueOf(String.valueOf(o)));
-				}
+				for (Object o : list) usernames.add(Long.valueOf(String.valueOf(o)));
 			}
 			if (usernames.isEmpty()) {
 				return ResponseEntity.badRequest().body("발송 대상 회원이 없습니다.");
 			}
 
-			Map<String, Integer> result = couponService.sendToChurnMembers(ownerId, couponNum, couponName,
-					date, usernames);
+			Map<String, Integer> result = couponService.sendToChurnMembers(ownerId, couponNum, couponName, date, usernames);
 			return ResponseEntity.ok(result);
 		} catch (IllegalArgumentException e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
@@ -136,7 +147,8 @@ public class CouponController {
 	}
 
 	@GetMapping("trial/list")
-	public ResponseEntity<?> trialList(@RequestHeader(value = "Authorization", required = false) String authorization,
+	public ResponseEntity<?> trialList(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestParam("gymId") Long gymId) throws Exception {
 		try {
 			validateAndGetUsername(authorization);

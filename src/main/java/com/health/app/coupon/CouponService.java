@@ -5,20 +5,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.health.app.alarm.AlarmService;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class CouponService {
 
-	@Autowired
-	private CouponMapper couponMapper;
-
-	@Autowired
-	private AlarmService alarmService;
+	private final CouponMapper couponMapper;
+	private final AlarmService alarmService;
 
 	public List<CouponDTO> toList(Long username) throws Exception {
 		return couponMapper.toList(username);
@@ -34,7 +33,7 @@ public class CouponService {
 
 	@Transactional
 	public int sendCoupon(CouponDTO couponDTO) throws Exception {
-		int dupCount = couponMapper.checkDuplicateUnused(couponDTO.getToId(), couponDTO.getCouponNum());
+		int dupCount = couponMapper.checkDuplicateUnused(couponDTO.getUsername(), couponDTO.getCouponNum());
 		if (dupCount > 0) {
 			throw new IllegalArgumentException("이미 사용하지 않은 동일한 쿠폰을 보유하고 있는 회원입니다.");
 		}
@@ -45,7 +44,7 @@ public class CouponService {
 			couponMapper.sendCount(couponDTO.getCouponNum());
 
 			alarmService.sendAlarm(
-				couponDTO.getToId(),
+				couponDTO.getUsername(),
 				couponDTO.getFromId(),
 				"새로운 쿠폰이 도착했습니다: " + couponDTO.getCouponName(),
 				"/fitc/mypage/coupon",
@@ -58,10 +57,12 @@ public class CouponService {
 	@Transactional
 	public Map<String, Integer> sendToChurnMembers(Long fromId, Long couponNum, String couponName,
 			LocalDate date, List<Long> usernames) throws Exception {
-		int sent = 0, skipped = 0;
+		int sent = 0;
+		int skipped = 0;
+
 		if (usernames != null) {
-			for (Long toId : usernames) {
-				int claimed = couponMapper.claimChurnStatusToday(toId);
+			for (Long username : usernames) {
+				int claimed = couponMapper.claimChurnStatusToday(username);
 				if (claimed == 0) {
 					skipped++;
 					continue;
@@ -69,7 +70,7 @@ public class CouponService {
 
 				CouponDTO dto = new CouponDTO();
 				dto.setFromId(fromId);
-				dto.setToId(toId);
+				dto.setUsername(username);
 				dto.setCouponNum(couponNum);
 				dto.setCouponName(couponName);
 				dto.setDate(date);
@@ -77,7 +78,7 @@ public class CouponService {
 				couponMapper.sendCoupon(dto);
 				couponMapper.sendCount(couponNum);
 				alarmService.sendAlarm(
-					toId, fromId,
+					username, fromId,
 					"새로운 쿠폰이 도착했습니다: " + couponName,
 					"/fitc/mypage/coupon",
 					"COUPON"
@@ -85,6 +86,7 @@ public class CouponService {
 				sent++;
 			}
 		}
+
 		Map<String, Integer> result = new HashMap<>();
 		result.put("sent", sent);
 		result.put("skipped", skipped);
@@ -106,4 +108,5 @@ public class CouponService {
 	public List<CouponDTO> trialList(Long gymId) throws Exception {
 		return couponMapper.trialList(gymId);
 	}
+
 }
