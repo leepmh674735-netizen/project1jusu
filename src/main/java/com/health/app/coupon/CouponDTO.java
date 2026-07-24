@@ -2,19 +2,13 @@ package com.health.app.coupon;
 
 import java.time.LocalDate;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-
-@Getter
-@Setter
-@ToString
 public class CouponDTO {
 
 	private Long couponId;
-	private Long fromId; 
+	private Long fromId;
 	private Long toId;
 	private LocalDate date;
+	private String status;
 	private Long couponNum;
 
 	private String couponName;
@@ -24,7 +18,7 @@ public class CouponDTO {
 	private Integer couponCount;
 	private Long gymId;
 
-	private String fromName;
+	private String formName;
 	private String toName;
 	private Integer churnStatus;
 
