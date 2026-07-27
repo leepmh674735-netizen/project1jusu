@@ -7,7 +7,7 @@ export const ROLE_LABEL = {
 
 export const B2B_ROLES = ['admin', 'owner', 'trainer'];
 
-export const normalizeRole = (role) => String(role || '').toLowerCase();
+export const normalizeRole = (role) => String(role || '').toLowerCase().trim();
 
 export const isGymRole = (role) => ['owner', 'trainer'].includes(normalizeRole(role));
 
@@ -125,10 +125,9 @@ export const getB2bHomeActions = (role) => {
   const core = normRole === 'admin'
     ? CORE_HOME_ACTIONS.filter((action) => action.id !== 'item')
     : CORE_HOME_ACTIONS;
-  return [
-    ...core,
-    ...(ROLE_HOME_ACTIONS[normRole] || []),
-  ];
+  
+  const roleActions = ROLE_HOME_ACTIONS[normRole] || [];
+  return [...core, ...roleActions];
 };
 
 const PAGE_TITLE_RULES = [
@@ -143,9 +142,9 @@ const PAGE_TITLE_RULES = [
   { test: /^\/fitb\/promotion/, label: '프로모션' },
   { test: /^\/fitb\/management/, label: '회원 · 직원 관리' },
   { test: /^\/fitb\/b2bmypage/, label: '마이페이지' },
-  { test: /^\/fitb$/, label: 'Home' },
+  { test: /^\/fitb\/?$/, label: 'Home' },
 ];
 
 export const getB2bPageTitle = (pathname) => (
-  PAGE_TITLE_RULES.find(({ test }) => test.test(pathname))?.label || '관리'
+  PAGE_TITLE_RULES.find(({ test }) => test.test(pathname || ''))?.label || '관리'
 );

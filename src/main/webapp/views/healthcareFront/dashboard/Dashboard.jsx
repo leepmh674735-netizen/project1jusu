@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 // 위젯 키별 표시 이름 (백엔드 h_dashboard_widget.widget_key와 매핑)
-// OWNER 위젯 세트 개편(2026-07-22 확정)으로 memberCount·expiringContract·bodyComposition은
-// 더 이상 어느 역할의 DEFAULT_WIDGETS에도 없는 죽은 키라 라벨을 제거했다 — 아래 KNOWN 필터로
-// h_dashboard_widget에 잔존할 수 있는 구 키 행을 렌더·편집 목록에서 제외한다.
 const WIDGET_LABEL = {
   gymCount: '계약 체육관 수',
   expiringSubscription: '다가오는 구독 만료',
@@ -18,7 +15,6 @@ const WIDGET_LABEL = {
   monthlySession: '월별 세션 수행',
   memberChurn: '회원 이탈 예측',
   goalRate: '목표 달성률',
-  // OWNER 위젯 세트 개편 (2026-07-22 확정)
   activeMemberCount: '총 회원 수',
   couponUsage: '쿠폰 사용',
   expiringMemberCount: '만료 임박 회원 수',
@@ -26,10 +22,6 @@ const WIDGET_LABEL = {
   churnTrend: '월별 이탈 위험군 추이',
 };
 
-const ROLE_LABEL = { ADMIN: '관계사', OWNER: '사장님', TRAINER: '트레이너' };
-
-// 위젯 배치 폭 (목업 기준: KPI 4열 한 줄 · 리스트 2열 · 차트 전폭)
-// 사용자가 지정한 위젯 순서(sortOrder)는 유지하고 각 카드의 grid span만 달리한다.
 const WIDGET_LAYOUT = {
   gymCount: 'kpi',
   managedMemberCount: 'kpi',
@@ -40,16 +32,15 @@ const WIDGET_LAYOUT = {
   monthlyRevenue: 'chart',
   monthlyExpense: 'chart',
   monthlySession: 'chart',
-  // OWNER 위젯 세트 개편 (2026-07-22 확정)
   activeMemberCount: 'kpi',
   couponUsage: 'kpi',
   expiringMemberCount: 'kpi',
   todayAttendance: 'kpi',
   churnTrend: 'chart',
 };
+
 const layoutOf = (widgetKey) => WIDGET_LAYOUT[widgetKey] ?? 'list';
 
-// 차트 위젯 계열 정보 (범례 라벨 + 막대 색)
 const CHART_SERIES = {
   monthlyRevenue: { label: '매출', tone: 'accent' },
   monthlyExpense: { label: '지출', tone: 'gray' },
@@ -57,12 +48,9 @@ const CHART_SERIES = {
   churnTrend: { label: '위험군', tone: 'blue' },
 };
 
-// 회원/직원 관리 기존 라우트 (팀원 개편 중 - 현재 401 발생 상태 그대로 유지, merge 후 실제 라우트로 교체)
 const MANAGEMENT_ROUTE = '/fitb/management';
-// 이탈 리포트 페이지 (헬스장 이탈 통계 리포트)
 const REPORT_ROUTE = '/fitb/report';
 
-// 위젯 카드 클릭 시 이동 라우트 (OWNER 위젯 세트 개편 2026-07-22 확정)
 const WIDGET_LINK = {
   activeMemberCount: MANAGEMENT_ROUTE,
   todayAttendance: MANAGEMENT_ROUTE,
@@ -71,8 +59,6 @@ const WIDGET_LINK = {
   gymChurn: REPORT_ROUTE,
 };
 
-// AI 영역 왼쪽 질문 카드 4종 - 단일 위젯/메서드로 없어서 AI가 READ 도구를 조합해야 답할 수 있는 질문
-// 질문 문구는 이 메타에 고정한다 (사용자 입력 아님 - 전송 질문 예측 가능, 임의 문자열 주입 여지 없음)
 const AI_QUESTIONS = [
   { key: 'netprofit', tag: '매출 × 지출', question: '최근 6개월 순이익 추이 알려줘' },
   { key: 'renewal', tag: '계약', question: 'PT 계약 갱신율은 어때?' },
@@ -80,9 +66,6 @@ const AI_QUESTIONS = [
   { key: 'churn', tag: '이탈 예측', question: '이탈 위험이 높은 회원은 누구야?' },
 ];
 
-// 역할별 커스텀 대시보드 (1부: 위젯 조회/토글/순서 변경/데이터 표시)
-// 위젯 편집 모달(팝업) — ESC·바깥 클릭·닫기 버튼으로 닫힌다.
-// 표시 전용 컴포넌트로, 토글·순서 변경은 상위에서 내려준 기존 핸들러(같은 API)를 그대로 호출한다.
 function WidgetEditModal({ widgets, onToggle, onMove, onClose }) {
   const boxRef = useRef(null);
 
@@ -146,24 +129,43 @@ function Dashboard() {
   const [data, setData] = useState({});
   const [editOpen, setEditOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [briefing, setBriefing] = useState(null); // null=미로드, []=처리할 일 없음
+  const [briefing, setBriefing] = useState(null);
   const [bundleOpen, setBundleOpen] = useState(false);
 
-  const loginUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const abortControllerRef = useRef(null);
+
+  const getLoginUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  };
+
+  const loginUser = getLoginUser();
   const token = localStorage.getItem('accessToken');
-  // Phase 1.5(프리뷰 게이트): 대시보드 AI 영역은 ADMIN·OWNER·TRAINER 모두 노출
-  // (ADMIN·TRAINER는 질문 시 고정 문구 응답·브리핑 빈 후보 - 세부 항목은 추후 role별 변경)
   const aiEligible = ['owner', 'admin', 'trainer']
     .includes(String(loginUser?.role || '').toLowerCase());
 
-  // 위젯 설정 + 활성 위젯 데이터 조회 (GET /dashboard/widgets, /dashboard/data)
+  const cancelPendingRequests = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
+  // 위젯 설정 + 활성 위젯 데이터 조회
   const loadDashboard = useCallback(async () => {
     if (!token) return;
+
+    cancelPendingRequests();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [widgetRes, dataRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets`, { headers }),
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/data`, { headers }),
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets`, { headers, signal: controller.signal }),
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/data`, { headers, signal: controller.signal }),
       ]);
 
       if (widgetRes.ok && dataRes.ok) {
@@ -174,34 +176,40 @@ function Dashboard() {
         setMessage(`조회 실패(${widgetRes.status}): ${await widgetRes.text()}`);
       }
     } catch (error) {
-      console.error('대시보드 조회 오류:', error);
-      setMessage('서버와의 통신 중 오류가 발생했습니다.');
+      if (error.name !== 'AbortError') {
+        console.error('대시보드 조회 오류:', error);
+        setMessage('서버와의 통신 중 오류가 발생했습니다.');
+      }
     }
   }, [token]);
 
   useEffect(() => {
     loadDashboard();
+    return () => cancelPendingRequests();
   }, [loadDashboard]);
 
-  // 태스크 브리핑("오늘 처리할 일") - 결정적 GET /ai/briefing (토큰 무소모)
-  // 대시보드 진입(마운트)마다 건수>0 후보에서 랜덤 3개를 새로 받는다 (OWNER 외에는 서버가 빈 후보 반환)
+  // 태스크 브리핑("오늘 처리할 일")
   useEffect(() => {
     if (!token || !aiEligible) return;
+
+    const controller = new AbortController();
     fetch(`${import.meta.env.VITE_BACKEND_URL}/ai/briefing`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((result) => setBriefing(result ? result.items ?? [] : []))
-      .catch(() => setBriefing([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      .catch((err) => {
+        if (err.name !== 'AbortError') setBriefing([]);
+      });
 
-  // 질문 카드 클릭 - 고정 문구 질문을 AI 챗 팝업으로 자동 전송 (AiPanel이 ai-ask 이벤트 수신)
+    return () => controller.abort();
+  }, [token, aiEligible]);
+
   const askAi = (question) => {
     window.dispatchEvent(new CustomEvent('ai-ask', { detail: question }));
   };
 
-  // 위젯 표시 여부 토글 (PUT /dashboard/widgets/toggle)
   const handleToggle = async (widget) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets/toggle`, {
@@ -213,7 +221,6 @@ function Dashboard() {
       if (response.ok) {
         loadDashboard();
       } else {
-        // 409: 데이터가 없는 위젯은 켤 수 없음
         setMessage(await response.text());
       }
     } catch (error) {
@@ -222,15 +229,14 @@ function Dashboard() {
     }
   };
 
-  // 위젯 순서 한 칸 위/아래 이동 (PUT /dashboard/widgets/order)
-  // 구 위젯 키(h_dashboard_widget에 남아있을 수 있는 memberCount 등)는 알려진 키(visibleWidgets)
-  // 기준으로만 순서를 교환한다 - 죽은 키가 섞여 인덱스가 어긋나는 것을 방지
+  const visibleWidgets = widgets.filter((w) => WIDGET_LABEL[w.widgetKey]);
+  const activeWidgets = visibleWidgets.filter((w) => w.isActive && w.hasData);
+
   const handleMove = async (widgetKey, direction) => {
     const index = visibleWidgets.findIndex((w) => w.widgetKey === widgetKey);
     const target = index + direction;
     if (index < 0 || target < 0 || target >= visibleWidgets.length) return;
 
-    // 두 위젯의 sortOrder를 서로 교환
     const reordered = [
       { widgetKey: visibleWidgets[index].widgetKey, sortOrder: visibleWidgets[target].sortOrder },
       { widgetKey: visibleWidgets[target].widgetKey, sortOrder: visibleWidgets[index].sortOrder },
@@ -254,7 +260,6 @@ function Dashboard() {
     }
   };
 
-  // 위젯 데이터 형태별 렌더링 (KPI / 만료 목록 / 월별 차트 / 세션 목록 등)
   const renderWidgetData = (widgetKey) => {
     const value = data[widgetKey];
     if (value == null) return <p className="dash-empty">데이터 없음</p>;
@@ -268,7 +273,6 @@ function Dashboard() {
             <p className="dash-sub">이번 달 신규 +{value.newThisMonth}</p>
           </div>
         );
-      // 총 회원 수 (OWNER 위젯 세트 개편) - 이용권·PT·PT체험(3·4·5) ACTIVE 수신자 수 + 유형 구성
       case 'activeMemberCount':
         return (
           <div>
@@ -277,7 +281,6 @@ function Dashboard() {
             <p className="dash-sub">이용권 {value.membership} · PT {value.pt} · 체험 {value.trial}</p>
           </div>
         );
-      // 쿠폰 사용 (OWNER 위젯 세트 개편) - 전체 발급 대비 사용 수
       case 'couponUsage': {
         const pct = value.total > 0 ? Math.round((value.used / value.total) * 100) : 0;
         return (
@@ -290,7 +293,6 @@ function Dashboard() {
           </div>
         );
       }
-      // 만료 임박 회원 수 (OWNER 위젯 세트 개편) - 30일 내 end_date 도래
       case 'expiringMemberCount':
         return (
           <div>
@@ -298,7 +300,6 @@ function Dashboard() {
             <p className="dash-sub">30일 내 만료 예정</p>
           </div>
         );
-      // 오늘 출석 (OWNER 위젯 세트 개편) - h_check_inout 당일 distinct 체크인
       case 'todayAttendance':
         return (
           <div>
@@ -323,7 +324,6 @@ function Dashboard() {
         const max = Math.max(...value.map((row) => Number(row.total))) || 1;
         const tone = CHART_SERIES[widgetKey]?.tone ?? 'accent';
         return (
-          // 막대 위 수치는 목업대로 생략하고 title 속성으로 정확한 값을 제공한다
           <div className="dash-chart">
             {value.map((row) => (
               <div key={row.month} className="dash-bar-col" title={`${row.month} · ${Number(row.total).toLocaleString()}`}>
@@ -355,7 +355,6 @@ function Dashboard() {
             <p className="dash-sub">설문 {value.total}건 기준</p>
           </div>
         );
-      // 월별 이탈 위험군 추이 (OWNER 위젯 세트 개편) - ResultService.selectStatPeriods(monthly)
       case 'churnTrend': {
         const max = Math.max(...value.map((row) => Number(row.riskMembers))) || 1;
         return (
@@ -389,15 +388,8 @@ function Dashboard() {
     }
   };
 
-  // 알려진(WIDGET_LABEL에 라벨이 있는) 위젯 키만 표시·편집 대상으로 삼는다.
-  // OWNER 위젯 세트 개편(2026-07-22)으로 h_dashboard_widget에 남아있을 수 있는 구 키
-  // (memberCount·expiringContract·bodyComposition 등)는 여기서 걸러진다.
-  const visibleWidgets = widgets.filter((w) => WIDGET_LABEL[w.widgetKey]);
-  const activeWidgets = visibleWidgets.filter((w) => w.isActive && w.hasData);
-
   return (
     <div className="dash-page">
-      {/* 상단 줄: 선택된 위젯 칩(삭제형) + 위젯 편집 버튼 — 칩 ✕는 기존 토글 API를 그대로 사용 */}
       <div className="dash-toolbar">
         <div className="dash-chips">
           {activeWidgets.map((widget) => (
@@ -426,7 +418,6 @@ function Dashboard() {
       {!token && <p className="dash-message">로그인이 필요합니다. 먼저 로그인해 주세요.</p>}
       {message && <p className="dash-message">{message}</p>}
 
-      {/* 위젯 편집 모달(팝업): 데이터 없는 위젯은 잠금 표시 — 토글·순서 변경 API는 기존 그대로 */}
       {editOpen && (
         <WidgetEditModal
           widgets={visibleWidgets}
@@ -436,13 +427,11 @@ function Dashboard() {
         />
       )}
 
-      {/* 활성 위젯 카드 목록 — KPI 4열 / 리스트 2열 / 차트 전폭 (목업 배치) */}
       <div className="dash-grid">
         {activeWidgets.length === 0 && <p className="dash-empty">표시할 위젯이 없습니다. 위젯 편집에서 켜보세요.</p>}
         {activeWidgets.map((widget) => {
           const layout = layoutOf(widget.widgetKey);
           const series = CHART_SERIES[widget.widgetKey];
-          // 위젯 클릭 이동 - 편집 모드에서는 이동을 비활성화해 편집 조작과 충돌하지 않게 한다
           const linkTo = WIDGET_LINK[widget.widgetKey];
           const clickable = !!linkTo && !editOpen;
           const CardTag = clickable ? 'button' : 'div';
@@ -463,8 +452,6 @@ function Dashboard() {
         })}
       </div>
 
-      {/* AI 영역 (OWNER 전용, 위젯 그리드 아래 좌우 분할)
-          왼쪽=질문 카드(클릭 시 AI 팝업 답변·토큰 소모) / 오른쪽=태스크 브리핑(클릭 시 페이지 이동·무소모) */}
       {aiEligible && (
         <div className="dash-ai-zone">
           <div className="dash-ai-card">
@@ -490,7 +477,6 @@ function Dashboard() {
               <div className="dash-ai-tasks">
                 {briefing.map((item) => (
                   item.bundle ? (
-                    // 지출 내역 확인 - 1슬롯 묶음 (커미션·월급 아코디언)
                     <div key={item.key}>
                       <button type="button" className="dash-ai-task" onClick={() => setBundleOpen(!bundleOpen)}>
                         <span className="dash-ai-task-label">{item.label}</span>

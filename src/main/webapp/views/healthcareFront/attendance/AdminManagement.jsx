@@ -1,20 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './AdminManagement.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// 날짜 파싱 안정화: 타임존 영향을 받지 않고 년/월/일만 정확히 비교
 const calcDaysLeft = (endDate) => {
   if (!endDate) return null;
 
+  const parts = String(endDate).split('-');
+  if (parts.length !== 3) return null;
+
+  const [year, month, day] = parts.map(Number);
+  if (!year || !month || !day) return null;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const end = new Date(`${endDate}T00:00:00`);
+
+  const end = new Date(year, month - 1, day);
+  end.setHours(0, 0, 0, 0);
+
   return Math.round((end - today) / DAY_MS);
 };
 
-// 만료까지 남은 기간을 라벨 + 심각도 level로 변환한다.
-// 색상은 CSS(.admin-management__badge--{level})가 담당하고, JSX는 데이터 파생 값만 계산한다.
-// (색을 못 봐도 라벨 텍스트로 상태를 알 수 있게 label을 함께 제공)
 const getExpiryMeta = (endDate) => {
   const daysLeft = calcDaysLeft(endDate);
 
@@ -35,7 +42,6 @@ const STATUS_LABEL = {
   TERMINATED: '종료',
 };
 
-// 계약 유형 코드(1=제휴, 2=임금, 3=이용권, 4=PT, 5=PT 체험) 표시 라벨
 const CONTRACT_LABEL = {
   1: '제휴',
   2: '임금',
@@ -44,30 +50,34 @@ const CONTRACT_LABEL = {
   5: 'PT 체험',
 };
 
-// 총괄 관리자(admin) 전용 회원 관리 화면
-// 상단 탭으로 두 영역을 나눈다:
-//  ① 운동시설 제휴 계약 현황 - 계약 기간·만료 확인, 시설명 클릭 시 해당 시설 회원 명단 드릴다운
-//  ② 구인구직 - 유효 임금계약(2)이 없는 이탈 트레이너 풀(연락처 소개용, 최소 정보만)
-// 모든 조회는 기존 백엔드 API(GET /contract/roster, /contract/jobseekers)를 그대로 사용한다.
 function AdminManagement() {
-  // 상단 탭: 'contracts'=운동시설 제휴 계약 현황 / 'jobseekers'=구인구직 트레이너 풀
   const [activeTab, setActiveTab] = useState('contracts');
 
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 운동시설 회원 명단 드릴다운 상태 (selectedGym=null 이면 시설 리스트 뷰)
   const [selectedGym, setSelectedGym] = useState(null);
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
 
-  // 구인구직(구직 트레이너 풀) 상태 - 탭 최초 진입 시에만 조회
   const [jobSeekers, setJobSeekers] = useState([]);
   const [jobLoading, setJobLoading] = useState(false);
   const [jobError, setJobError] = useState('');
   const [jobLoaded, setJobLoaded] = useState(false);
+
+  // 검색어 상태
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // 진행 중인 fetch 요청 취소용 Controller Ref
+  const abortControllerRef = useRef(null);
+
+  const cancelPendingRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
 
   const fetchContracts = useCallback(async () => {
     const token = localStorage.getItem('accessToken');
@@ -77,12 +87,17 @@ function AdminManagement() {
       return;
     }
 
+    cancelPendingRequest();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError('');
 
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/roster`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -92,27 +107,32 @@ function AdminManagement() {
 
       setContracts(await response.json());
     } catch (fetchError) {
-      console.error('운동시설 계약 현황 조회 실패:', fetchError);
-      setError('서버와 통신 중 오류가 발생했습니다.');
+      if (fetchError.name !== 'AbortError') {
+        console.error('운동시설 계약 현황 조회 실패:', fetchError);
+        setError('서버와 통신 중 오류가 발생했습니다.');
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    // 최초 진입 시 서버의 최신 계약 상태를 동기화한다.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContracts();
+    return () => cancelPendingRequest();
   }, [fetchContracts]);
 
-  // 선택한 운동시설(gymId)의 소속 명단을 조회해 회원(role=member)만 남긴다.
-  // 백엔드는 기존 GET /contract/roster?gymId= 를 그대로 사용한다(신규 API 없음).
   const fetchMembers = useCallback(async (gymId) => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
       setMembersError('로그인이 필요합니다.');
       return;
     }
+
+    cancelPendingRequest();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setMembersLoading(true);
     setMembersError('');
@@ -122,6 +142,7 @@ function AdminManagement() {
       const params = new URLSearchParams({ gymId: String(gymId) });
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/roster?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -130,18 +151,19 @@ function AdminManagement() {
       }
 
       const roster = await response.json();
-      // 트레이너 등은 제외하고 회원(member)만 노출
       setMembers(roster.filter((item) => item.member?.role?.toLowerCase() === 'member'));
     } catch (fetchError) {
-      console.error('운동시설 회원 명단 조회 실패:', fetchError);
-      setMembersError('서버와 통신 중 오류가 발생했습니다.');
+      if (fetchError.name !== 'AbortError') {
+        console.error('운동시설 회원 명단 조회 실패:', fetchError);
+        setMembersError('서버와 통신 중 오류가 발생했습니다.');
+      }
     } finally {
-      setMembersLoading(false);
+      if (!controller.signal.aborted) {
+        setMembersLoading(false);
+      }
     }
   }, []);
 
-  // 구직 트레이너 풀 조회 (ADMIN 전용 - 그 외 역할은 403)
-  // 유효 임금계약(2)이 없는 이탈 트레이너를 이름·전화번호(아이디) 최소 정보만 조회한다.
   const fetchJobSeekers = useCallback(async () => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -149,12 +171,17 @@ function AdminManagement() {
       return;
     }
 
+    cancelPendingRequest();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setJobLoading(true);
     setJobError('');
 
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/jobseekers`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -165,23 +192,27 @@ function AdminManagement() {
       setJobSeekers(await response.json());
       setJobLoaded(true);
     } catch (fetchError) {
-      console.error('구직 트레이너 조회 실패:', fetchError);
-      setJobError('서버와 통신 중 오류가 발생했습니다.');
+      if (fetchError.name !== 'AbortError') {
+        console.error('구직 트레이너 조회 실패:', fetchError);
+        setJobError('서버와 통신 중 오류가 발생했습니다.');
+      }
     } finally {
-      setJobLoading(false);
+      if (!controller.signal.aborted) {
+        setJobLoading(false);
+      }
     }
   }, []);
 
-  // 탭 전환 - 구인구직 탭 최초 진입 시에만 조회 (이후에는 새로고침 버튼으로 갱신)
   const handleSelectTab = (tab) => {
+    setSearchTerm('');
     setActiveTab(tab);
     if (tab === 'jobseekers' && !jobLoaded) {
       fetchJobSeekers();
     }
   };
 
-  // 운동시설명 클릭 → 회원 명단 뷰로 전환하며 조회
   const handleSelectGym = (contract) => {
+    setSearchTerm('');
     setSelectedGym({
       gymId: contract.gymId,
       gymName: contract.gymName || `운동시설 #${contract.gymId}`,
@@ -189,8 +220,8 @@ function AdminManagement() {
     fetchMembers(contract.gymId);
   };
 
-  // 시설 리스트 뷰로 복귀
   const handleBackToGyms = () => {
+    setSearchTerm('');
     setSelectedGym(null);
     setMembers([]);
     setMembersError('');
@@ -205,7 +236,35 @@ function AdminManagement() {
     return counts;
   }, { normal: 0, expiring: 0, expired: 0 }), [contracts]);
 
-  // ── 회원 명단 뷰 (운동시설 선택 후) ─────────────────────────────
+  // 검색 필터링된 데이터
+  const filteredContracts = useMemo(() => {
+    if (!searchTerm.trim()) return contracts;
+    const term = searchTerm.toLowerCase();
+    return contracts.filter((c) => (
+      (c.gymName && c.gymName.toLowerCase().includes(term)) ||
+      (c.member?.name && c.member.name.toLowerCase().includes(term))
+    ));
+  }, [contracts, searchTerm]);
+
+  const filteredMembers = useMemo(() => {
+    if (!searchTerm.trim()) return members;
+    const term = searchTerm.toLowerCase();
+    return members.filter((m) => (
+      (m.member?.name && m.member.name.toLowerCase().includes(term)) ||
+      (m.member?.username && String(m.member.username).toLowerCase().includes(term))
+    ));
+  }, [members, searchTerm]);
+
+  const filteredJobSeekers = useMemo(() => {
+    if (!searchTerm.trim()) return jobSeekers;
+    const term = searchTerm.toLowerCase();
+    return jobSeekers.filter((j) => (
+      (j.name && j.name.toLowerCase().includes(term)) ||
+      (j.username && String(j.username).toLowerCase().includes(term))
+    ));
+  }, [jobSeekers, searchTerm]);
+
+  // ── 회원 명단 뷰 ─────────────────────────────
   const renderMemberView = () => (
     <>
       <div className="admin-management__header">
@@ -226,10 +285,22 @@ function AdminManagement() {
         </button>
       </div>
 
+      <div className="admin-management__filter-bar">
+        <input
+          type="search"
+          placeholder="회원 이름 또는 연락처(아이디) 검색"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="admin-management__search-input"
+        />
+      </div>
+
       {membersError && <p className="admin-management__error">{membersError}</p>}
 
-      {!membersLoading && !membersError && members.length === 0 ? (
-        <p className="admin-management__empty">이 운동시설에 등록된 회원이 없습니다.</p>
+      {!membersLoading && !membersError && filteredMembers.length === 0 ? (
+        <p className="admin-management__empty">
+          {searchTerm ? '검색 결과와 일치하는 회원이 없습니다.' : '이 운동시설에 등록된 회원이 없습니다.'}
+        </p>
       ) : !membersError && (
         <div className="admin-management__table-wrap">
           <table className="admin-management__table">
@@ -244,7 +315,7 @@ function AdminManagement() {
               </tr>
             </thead>
             <tbody>
-              {members.map((item) => {
+              {filteredMembers.map((item) => {
                 const expiry = getExpiryMeta(item.endDate);
                 return (
                   <tr key={item.member?.username ?? item.dataId}>
@@ -274,7 +345,7 @@ function AdminManagement() {
     </>
   );
 
-  // ── 운동시설 제휴 계약 현황 뷰 (시설 리스트) ─────────────────────
+  // ── 운동시설 제휴 계약 현황 뷰 ─────────────────────
   const renderGymList = () => (
     <>
       <div className="admin-management__header">
@@ -310,10 +381,22 @@ function AdminManagement() {
         </div>
       </div>
 
+      <div className="admin-management__filter-bar">
+        <input
+          type="search"
+          placeholder="운동시설명 또는 대표자명 검색"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="admin-management__search-input"
+        />
+      </div>
+
       {error && <p className="admin-management__error">{error}</p>}
 
-      {!loading && !error && contracts.length === 0 ? (
-        <p className="admin-management__empty">등록된 제휴 계약이 없습니다.</p>
+      {!loading && !error && filteredContracts.length === 0 ? (
+        <p className="admin-management__empty">
+          {searchTerm ? '검색 결과와 일치하는 운동시설이 없습니다.' : '등록된 제휴 계약이 없습니다.'}
+        </p>
       ) : !error && (
         <div className="admin-management__table-wrap">
           <table className="admin-management__table">
@@ -328,7 +411,7 @@ function AdminManagement() {
               </tr>
             </thead>
             <tbody>
-              {contracts.map((contract) => {
+              {filteredContracts.map((contract) => {
                 const expiry = getExpiryMeta(contract.endDate);
                 return (
                   <tr key={contract.dataId}>
@@ -365,7 +448,7 @@ function AdminManagement() {
     </>
   );
 
-  // ── 구인구직 뷰 (구직 트레이너 풀) ──────────────────────────────
+  // ── 구인구직 뷰 ──────────────────────────────
   const renderJobSeekers = () => (
     <>
       <div className="admin-management__header">
@@ -386,10 +469,22 @@ function AdminManagement() {
         </button>
       </div>
 
+      <div className="admin-management__filter-bar">
+        <input
+          type="search"
+          placeholder="트레이너 이름 또는 전화번호 검색"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="admin-management__search-input"
+        />
+      </div>
+
       {jobError && <p className="admin-management__error">{jobError}</p>}
 
-      {!jobLoading && !jobError && jobSeekers.length === 0 ? (
-        <p className="admin-management__empty">현재 구직 중인 트레이너가 없습니다.</p>
+      {!jobLoading && !jobError && filteredJobSeekers.length === 0 ? (
+        <p className="admin-management__empty">
+          {searchTerm ? '검색 결과와 일치하는 트레이너가 없습니다.' : '현재 구직 중인 트레이너가 없습니다.'}
+        </p>
       ) : !jobError && (
         <div className="admin-management__table-wrap">
           <table className="admin-management__table">
@@ -400,7 +495,7 @@ function AdminManagement() {
               </tr>
             </thead>
             <tbody>
-              {jobSeekers.map((trainer) => (
+              {filteredJobSeekers.map((trainer) => (
                 <tr key={trainer.username}>
                   <td className="admin-management__cell--name">{trainer.name}</td>
                   <td>{trainer.username}</td>
@@ -415,10 +510,12 @@ function AdminManagement() {
 
   return (
     <div className="admin-management">
-      <div className="admin-management__tabs" role="tablist" aria-label="회원 관리">
+      <div className="admin-management__tabs" role="tablist" aria-label="회원 및 계약 관리">
         <button
+          id="tab-contracts"
           type="button"
           role="tab"
+          aria-controls="panel-contracts"
           aria-selected={activeTab === 'contracts'}
           className={`admin-management__tab${activeTab === 'contracts' ? ' admin-management__tab--active' : ''}`}
           onClick={() => handleSelectTab('contracts')}
@@ -426,8 +523,10 @@ function AdminManagement() {
           운동시설 제휴 계약
         </button>
         <button
+          id="tab-jobseekers"
           type="button"
           role="tab"
+          aria-controls="panel-jobseekers"
           aria-selected={activeTab === 'jobseekers'}
           className={`admin-management__tab${activeTab === 'jobseekers' ? ' admin-management__tab--active' : ''}`}
           onClick={() => handleSelectTab('jobseekers')}
@@ -436,9 +535,15 @@ function AdminManagement() {
         </button>
       </div>
 
-      {activeTab === 'contracts'
-        ? (selectedGym ? renderMemberView() : renderGymList())
-        : renderJobSeekers()}
+      <div
+        id={`panel-${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${activeTab}`}
+      >
+        {activeTab === 'contracts'
+          ? (selectedGym ? renderMemberView() : renderGymList())
+          : renderJobSeekers()}
+      </div>
     </div>
   );
 }

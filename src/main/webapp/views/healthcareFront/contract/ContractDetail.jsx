@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 // 계약 유형은 contract FK로 판별 (1=제휴, 2=임금, 3=이용권, 4=PT, 5=PT 체험)
-// 유형별 라벨 (헬스장_계약서_서명폼.html TYPES 참고)
+// 유형별 라벨
 const TYPE_INFO = {
   1: { title: '관리자–헬스장 제휴 계약서', senderLabel: '관리자(플랫폼)', receiverLabel: '헬스장(Owner)' },
   2: { title: '헬스장–트레이너 임금 계약서', senderLabel: '헬스장(Owner)', receiverLabel: '트레이너' },
@@ -22,7 +22,7 @@ const HISTORY_LABEL = {
   5: 'PT 체험',
 };
 
-// 계약 유형별 조항 본문 (서명폼.html bodyFor 참고)
+// 계약 유형별 조항 본문
 function ContractBody({ d }) {
   const gym = d.gymName ?? '헬스장';
   const rcv = d.receiverName ?? '수신자';
@@ -91,7 +91,7 @@ function ContractBody({ d }) {
   );
 }
 
-// 체결 완료 시 후속 처리 안내 (서명폼.html activationHTML 참고)
+// 체결 완료 시 후속 처리 안내
 function Activation({ d }) {
   if (d.contract === 3)
     return (
@@ -127,38 +127,61 @@ function Activation({ d }) {
   );
 }
 
-// 계약서 상세 및 서명 페이지 (헬스장_계약서_서명폼.html 기준, 디자인 제외 Plain 버전)
+// 계약서 상세 및 서명 페이지
 function ContractDetail() {
   const { dataId } = useParams();
   const navigate = useNavigate();
   const [detail, setDetail] = useState(null);
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // 제휴 계약(1)은 OWNER만 수신자로서 서명 가능 - ADMIN(발행자) 조회 시 서명 영역 미노출용
-  const loginUser = JSON.parse(localStorage.getItem('user') || 'null');
+  // 로그인 사용자 파싱 예외 방지
+  const getLoginUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  };
+  const loginUser = getLoginUser();
   const isAdmin = loginUser?.role?.toUpperCase() === 'ADMIN';
 
-  // 서명폼 상태 (서명자 성명 + 동의 항목 + 서명 패드)
+  // 서명폼 상태
   const [signerName, setSignerName] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreeRefund, setAgreeRefund] = useState(false);
   const [agreeSign, setAgreeSign] = useState(false);
   const [hasInk, setHasInk] = useState(false);
+
   const canvasRef = useRef(null);
   const drawingRef = useRef(false);
   const lastRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
-  // 계약서 상세 조회 (GET /contract/detail/{dataId})
-  const fetchDetail = async () => {
+  const cancelPendingRequests = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
+  // 계약서 상세 조회
+  const fetchDetail = useCallback(async () => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
       setMessage('로그인이 필요합니다.');
       return;
     }
+
+    cancelPendingRequests();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/detail/${dataId}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
+
       if (response.ok) {
         setDetail(await response.json());
         setMessage('');
@@ -166,36 +189,46 @@ function ContractDetail() {
         setMessage(`조회 실패(${response.status}): ${await response.text()}`);
       }
     } catch (error) {
-      console.error('상세 조회 오류:', error);
-      setMessage('서버와의 통신 중 오류가 발생했습니다.');
+      if (error.name !== 'AbortError') {
+        console.error('상세 조회 오류:', error);
+        setMessage('서버와의 통신 중 오류가 발생했습니다.');
+      }
     }
-  };
+  }, [dataId]);
 
   useEffect(() => {
     fetchDetail();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataId]);
+    return () => cancelPendingRequests();
+  }, [fetchDetail]);
 
-  // 갱신·연계 이력 (상세 화면 이력 테이블: 유형 | 금액 | 발행일)
+  // 갱신·연계 이력
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
     if (!detail) return;
 
-    // previous_data_id(교체 갱신) 체인을 따라가며 이전 계약들을 수집하고,
-    // related_data_id(PT 체험의 기본 계약 연계)는 갱신이 아니라 연계 이력으로 표시
+    let isMounted = true;
+    const controller = new AbortController();
+
     const buildHistory = async () => {
       const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
       const rows = [];
       const fetchOne = async (id) => {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/detail/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        return res.ok ? res.json() : null;
+        try {
+          const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/detail/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          });
+          return res.ok ? res.json() : null;
+        } catch {
+          return null;
+        }
       };
 
       let prevId = detail.previousDataId;
-      let guard = 0; // 순환/과다 조회 방지
+      let guard = 0;
       while (prevId && guard < 5) {
         const prev = await fetchOne(prevId);
         if (!prev) break;
@@ -209,25 +242,35 @@ function ContractDetail() {
         if (related) rows.push({ kind: '연계(기본 계약)', row: related });
       }
 
-      setHistory(rows);
+      if (isMounted) {
+        setHistory(rows);
+      }
     };
 
     buildHistory();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [detail]);
 
-  // 서명 패드 그리기 (마우스/터치 지원 - 서명폼.html 캔버스 패드 참고)
+  // 서명 패드그리기 이벤트
   const getPos = (e) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
     const rect = canvasRef.current.getBoundingClientRect();
     const p = e.touches ? e.touches[0] : e;
     return { x: p.clientX - rect.left, y: p.clientY - rect.top };
   };
+
   const padDown = (e) => {
     e.preventDefault();
     drawingRef.current = true;
     lastRef.current = getPos(e);
   };
+
   const padMove = (e) => {
-    if (!drawingRef.current) return;
+    if (!drawingRef.current || !canvasRef.current) return;
     e.preventDefault();
     const ctx = canvasRef.current.getContext('2d');
     const pos = getPos(e);
@@ -240,35 +283,50 @@ function ContractDetail() {
     lastRef.current = pos;
     setHasInk(true);
   };
+
   const padUp = () => {
     drawingRef.current = false;
   };
+
   const padClear = () => {
+    if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     setHasInk(false);
   };
 
-  // 이용권(3)/PT(4)/PT 체험(5) 계약은 환불 규정 동의 필수 (서명폼.html consentOk 참고)
   const needRefund = detail?.contract === 3 || detail?.contract === 4 || detail?.contract === 5;
   const canSign =
-    signerName.trim() !== '' && agreeTerms && agreeSign && (!needRefund || agreeRefund) && hasInk;
+    signerName.trim() !== '' &&
+    agreeTerms &&
+    agreeSign &&
+    (!needRefund || agreeRefund) &&
+    hasInk &&
+    !submitting;
 
-  // 서명 제출 (PUT /contract/detail/{dataId}/sign)
+  // 서명 제출
   const handleSign = async () => {
+    if (!canSign) return;
+
     const token = localStorage.getItem('accessToken');
+    if (!token) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    setSubmitting(true);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/contract/detail/${dataId}/sign`,
-        { method: 'PUT', headers: { Authorization: `Bearer ${token}` } },
+        { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }
       );
+
       if (response.ok) {
         alert('서명이 완료되어 계약이 체결되었습니다. (상태: SIGNED)');
-        // 이용권(3)/PT(4)/PT 체험(5) 계약은 결제 페이지로 자동 이동, 그 외(제휴/임금)는 상태만 갱신
         if (detail?.contract === 3 || detail?.contract === 4 || detail?.contract === 5) {
           navigate(`/fitb/payment/${dataId}`);
         } else {
-          fetchDetail(); // 상태 갱신 재조회
+          fetchDetail();
         }
       } else {
         setMessage(`서명 실패(${response.status}): ${await response.text()}`);
@@ -276,6 +334,8 @@ function ContractDetail() {
     } catch (error) {
       console.error('서명 오류:', error);
       setMessage('서버와의 통신 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -284,7 +344,9 @@ function ContractDetail() {
       <div>
         <h1>계약서 상세</h1>
         <p>{message || '불러오는 중...'}</p>
-        <button onClick={() => navigate('/fitb/contractpage')}>리스트로 돌아가기</button>
+        <button type="button" onClick={() => navigate('/fitb/contractpage')}>
+          리스트로 돌아가기
+        </button>
       </div>
     );
   }
@@ -293,14 +355,14 @@ function ContractDetail() {
 
   return (
     <div>
-      {/* PDF 보관(인쇄) 시 계약서 본문만 출력되도록 나머지 영역 숨김 처리 */}
       <style>{'@media print { .no-print { display: none; } }'}</style>
 
       <div className="no-print">
-        <button onClick={() => navigate('/fitb/contractpage')}>← 리스트로</button>
+        <button type="button" onClick={() => navigate('/fitb/contractpage')}>
+          ← 리스트로
+        </button>
         <p>{message}</p>
 
-        {/* 상태 흐름 표시 - 전 유형 통합: DRAFT › ISSUED › SIGNED › ACTIVE › TERMINATED (EXPIRED 미사용) */}
         <p>
           상태: <b>{detail.status}</b>
           {' '}
@@ -314,7 +376,6 @@ function ContractDetail() {
           )
         </p>
 
-        {/* 갱신·연계 이력 테이블 (유형 | 금액 | 발행일) - PT 체험은 갱신이 아니라 연계 이력으로 표시 */}
         {history.length > 0 && (
           <div>
             <h3>갱신·연계 이력</h3>
@@ -336,7 +397,9 @@ function ContractDetail() {
                     <td>{row.contract === 1 ? (row.contractRate != null ? `${row.contractRate}%` : '') : row.amount}</td>
                     <td>{row.issueDate}</td>
                     <td>
-                      <button onClick={() => navigate(`/fitb/contract/${row.dataId}`)}>#{row.dataId}</button>
+                      <button type="button" onClick={() => navigate(`/fitb/contract/${row.dataId}`)}>
+                        #{row.dataId}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -346,7 +409,6 @@ function ContractDetail() {
         )}
       </div>
 
-      {/* 계약서 본문 (읽기 전용) */}
       <hr />
       <h1>{info.title}</h1>
       <p>
@@ -356,7 +418,6 @@ function ContractDetail() {
       <ContractBody d={detail} />
       <p>계약 발행일: {detail.issueDate ?? '-'}</p>
 
-      {/* 서명란 */}
       <table border="1">
         <thead>
           <tr>
@@ -382,23 +443,25 @@ function ContractDetail() {
       </table>
       <hr className="no-print" />
 
-      {/* 제휴 계약(1)은 ADMIN이 발행자라 서명 대상이 아님 - 서명 영역 대신 읽기 전용 안내 표시 */}
       {detail.status === 'ISSUED' && detail.contract === 1 && isAdmin && (
         <p className="no-print">수신자(사장님) 서명 대기 중입니다.</p>
       )}
 
-      {/* status에 따른 서명 영역 분기 (제휴 계약(1)은 ADMIN에게 미노출) */}
       {detail.status === 'ISSUED' && !(detail.contract === 1 && isAdmin) && (
         <div className="no-print">
           <h2>수신자 서명</h2>
           <p>아래 동의 항목을 확인하고 서명하시면 계약이 체결됩니다. 모바일에서는 손가락으로 서명할 수 있습니다.</p>
 
           <div>
-            <label>서명자 성명: </label>
-            <input value={signerName} onChange={(e) => setSignerName(e.target.value)} placeholder="성명" />
+            <label htmlFor="signer-name-input">서명자 성명: </label>
+            <input
+              id="signer-name-input"
+              value={signerName}
+              onChange={(e) => setSignerName(e.target.value)}
+              placeholder="성명"
+            />
           </div>
 
-          {/* 동의 항목 (서명폼.html consentBox 참고) */}
           <div>
             <div>
               <label>
@@ -422,7 +485,6 @@ function ContractDetail() {
             </div>
           </div>
 
-          {/* 서명 패드 */}
           <div>
             <p>서명란 (마우스·손가락으로 서명하세요)</p>
             <canvas
@@ -441,7 +503,7 @@ function ContractDetail() {
           </div>
 
           <button type="button" onClick={handleSign} disabled={!canSign}>
-            서명하고 계약 체결
+            {submitting ? '처리 중...' : '서명하고 계약 체결'}
           </button>
         </div>
       )}
@@ -450,7 +512,6 @@ function ContractDetail() {
         <div className="no-print">
           <h2>계약 체결 완료</h2>
           <p>서명일시: {detail.signedAt?.replace('T', ' ') ?? '-'}</p>
-          {/* 이용권·PT·PT 체험은 결제 완료 후 ACTIVE - SIGNED 상태면 결제 대기 안내 */}
           {detail.status === 'SIGNED' && (detail.contract === 3 || detail.contract === 4 || detail.contract === 5) && (
             <p>
               결제 대기 중입니다.{' '}
@@ -461,7 +522,6 @@ function ContractDetail() {
           )}
           <Activation d={detail} />
 
-          {/* 서명 완료된 계약서 보관 - 브라우저 인쇄로 서명본을 PDF 파일로 저장 */}
           <button type="button" onClick={() => window.print()}>
             서명본 PDF로 보관 / 인쇄
           </button>

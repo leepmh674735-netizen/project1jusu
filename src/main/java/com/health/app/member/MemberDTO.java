@@ -21,29 +21,22 @@ public class MemberDTO {
 	private LocalDate birth;
 	private String status;
 
-	public void setUsername(Long username) {
-		this.username = username;
-	}
+	public void setUsernameFromString(String rawUsername) {
+		if (rawUsername == null || rawUsername.isBlank()) {
+			this.username = null;
+			return;
+		}
 
-	public void setUsername(String username) {
-		if (username != null && !username.isBlank()) {
-			try {
-				this.username = Long.parseLong(username);
-			} catch (NumberFormatException e) {
-				this.username = null;
-			}
-		} else {
+		String digits = rawUsername.replaceAll("[^0-9]", "");
+		if (digits.isBlank()) {
+			this.username = null;
+			return;
+		}
+
+		try {
+			this.username = Long.parseLong(digits);
+		} catch (NumberFormatException e) {
 			this.username = null;
 		}
 	}
-
-	public Long getUsername() {
-		return this.username;
-	}
-
-	// ⭐ getUsernameAsLong() 호출 시 에러를 없애주는 메소드 추가
-	public Long getUsernameAsLong() {
-		return this.username;
-	}
-
 }

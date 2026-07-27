@@ -1,26 +1,43 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// B2C 일반 회원용 계정 설정 수정 컴포넌트 (Plain 버전)
 function B2cAccount() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // 상태 관리 (이메일 및 새로운 비밀번호 입력 데이터)
+  const getUserData = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const user = getUserData();
+
   const [email, setEmail] = useState(user.email || '');
   const [password, setPassword] = useState('');
   const [passwordCheck, setPasswordCheck] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // 계정 정보 수정 요청 핸들러
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
+    if (password !== passwordCheck) {
+      setMessage('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+
     const token = localStorage.getItem('accessToken');
     if (!token) {
       alert('로그인이 필요합니다.');
       navigate('/');
       return;
     }
+
+    setLoading(true);
+    setMessage('');
 
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/member/update`, {
@@ -39,10 +56,9 @@ function B2cAccount() {
       if (response.ok) {
         alert('계정 정보가 성공적으로 변경되었습니다. 다시 로그인해 주세요.');
         
-        // 개인정보 변경 성공 시 세션을 클리어하고 강제 로그아웃 리다이렉트
         localStorage.removeItem('user');
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken'); // ◀ 리프레쉬 토큰 제거
+        localStorage.removeItem('refreshToken');
         navigate('/');
       } else {
         const errorText = await response.text();
@@ -51,13 +67,15 @@ function B2cAccount() {
     } catch (error) {
       console.error('정보 수정 중 오류 발생:', error);
       setMessage('서버와의 통신에 실패했습니다.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{ maxWidth: '400px', margin: '0 auto', padding: '20px' }}>
-      <h3>내 계정 설정 (B2B)</h3>
-      <p style={{ fontSize: '13px', color: '#666' }}>회원님의 임시 비밀번호와 이메일을 수정할 수 있습니다.</p>
+      <h3>내 계정 설정</h3>
+      <p style={{ fontSize: '13px', color: '#666' }}>회원님의 비밀번호와 이메일을 수정할 수 있습니다.</p>
 
       {message && <div style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{message}</div>}
 
@@ -78,6 +96,7 @@ function B2cAccount() {
             type="email" 
             value={email} 
             onChange={(e) => setEmail(e.target.value)} 
+            placeholder="example@domain.com"
             style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} 
           />
         </div>
@@ -106,8 +125,21 @@ function B2cAccount() {
           />
         </div>
 
-        <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' }}>
-          수정 완료
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{ 
+            padding: '10px', 
+            backgroundColor: loading ? '#ccc' : '#007bff', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '4px', 
+            cursor: loading ? 'not-allowed' : 'pointer', 
+            fontWeight: 'bold', 
+            marginTop: '10px' 
+          }}
+        >
+          {loading ? '수정 중...' : '수정 완료'}
         </button>
       </form>
     </div>

@@ -3,7 +3,16 @@ import { isGymRole } from '../config/uiNavigation.js';
 import './B2bMain.css';
 
 function B2bMain() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  // localStorage 예외 처리 구문
+  const getUserData = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const user = getUserData();
   const showGymMenus = isGymRole(user.role);
 
   return (
@@ -44,7 +53,8 @@ function B2bMain() {
       </nav>
 
       <div className="b2b-profile-page__outlet">
-        <Outlet />
+        {/* 하위 컴포넌트에 user 정보를 context로 전달 */}
+        <Outlet context={{ user }} />
       </div>
     </section>
   );

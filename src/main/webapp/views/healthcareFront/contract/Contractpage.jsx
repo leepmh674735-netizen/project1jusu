@@ -1,0 +1,320 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Pagination from '../settle/Pagination';
+import NavIcon from '../components/uiIcons.jsx';
+import './Contract.css';
+
+// 계약 유형은 contract FK로 판별 (1=제휴, 2=임금, 3=이용권, 4=PT, 5=PT 체험)
+const CONTRACT_LABEL = {
+  1: '제휴',
+  2: '임금',
+  3: '이용권',
+  4: 'PT',
+  5: 'PT 체험',
+};
+
+// 로그인 권한별 발행 가능한 계약서 버튼 목록
+const CREATE_BUTTONS = {
+  admin: [{ to: '/fitb/contract/new?contract=1', label: '+ 제휴 계약서', title: '제휴 계약서 작성' }],
+  owner: [
+    { to: '/fitb/contract/new?contract=2', label: '+ 임금', title: '임금 계약서 작성' },
+    { to: '/fitb/contract/new?contract=3', label: '+ 회원', title: '회원 계약서 작성 (이용권/PT)' },
+    { to: '/fitb/contractpage/trial', label: '+ PT 체험', title: 'PT 체험 계약서 작성 (체험권 대상)' },
+  ],
+};
+
+// '트레이너 구하기' 안내 팝업
+function TrainerRecruitModal({ onClose }) {
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  const onBackdropClick = (e) => {
+    if (boxRef.current && !boxRef.current.contains(e.target)) onClose();
+  };
+
+  return (
+    <div className="contract-modal-back" onClick={onBackdropClick}>
+      <div className="contract-modal" ref={boxRef} role="dialog" aria-modal="true" aria-label="트레이너 구하기">
+        <h4 className="contract-modal__title">트레이너 구하기</h4>
+        <p className="contract-modal__desc">
+          관계사가 구직 중인 트레이너를 선별해 소개해 드리는 서비스입니다.
+          준비 중인 기능으로, 도입 일정은 관계사에 문의해 주세요.
+        </p>
+        <div className="contract-modal__actions">
+          <button type="button" className="contract-btn-primary" onClick={onClose}>닫기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Contractpage() {
+  const navigate = useNavigate();
+  const [userList, setUserList] = useState([]);
+  const [pager, setPager] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [typeFilter, setTypeFilter] = useState(0);
+  const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [message, setMessage] = useState('');
+  const [hireModalOpen, setHireModalOpen] = useState(false);
+
+  const getLoginUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  };
+
+  const loginUser = getLoginUser();
+  const loginRole = String(loginUser?.role || '').toLowerCase();
+  const createButtons = CREATE_BUTTONS[loginRole] ?? [];
+  const isOwner = loginRole === 'owner';
+
+  // 권한별 계약 리스트 페이징 조회 (GET /contract/list)
+  const handleList = useCallback(async (signal) => {
+    setMessage('');
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setMessage('로그인이 필요합니다. 먼저 로그인해 주세요.');
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({ page: String(page), pageSize: '10' });
+      if (typeFilter) params.append('contract', String(typeFilter));
+      if (appliedKeyword) params.append('keyword', appliedKeyword);
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/list?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setUserList(result.items || []);
+        setPager(result.pager || null);
+        setTotalCount(result.totalCount || 0);
+        setMessage('');
+      } else {
+        setUserList([]);
+        setPager(null);
+        setTotalCount(0);
+        setMessage(`조회 실패(${response.status}): ${await response.text()}`);
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+      console.error('리스트 조회 오류:', error);
+      setMessage('서버와의 통신 중 오류가 발생했습니다.');
+    }
+  }, [page, typeFilter, appliedKeyword]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    handleList(controller.signal);
+    return () => controller.abort();
+  }, [handleList]);
+
+  const changeTypeFilter = (type) => {
+    setTypeFilter(type);
+    setPage(1);
+  };
+
+  const runSearch = () => {
+    setAppliedKeyword(keyword.trim());
+    setPage(1);
+  };
+
+  const clearSearch = () => {
+    setKeyword('');
+    setAppliedKeyword('');
+    setPage(1);
+  };
+
+  const badgeClass = (status) => {
+    const key = String(status || '').toLowerCase();
+    const known = ['active', 'signed', 'issued', 'terminated', 'draft'];
+    return `contract-badge contract-badge--${known.includes(key) ? key : 'issued'}`;
+  };
+
+  const openDrawer = (item) => {
+    window.dispatchEvent(new CustomEvent('b2b-drawer-open', {
+      detail: {
+        kind: 'contract',
+        id: item.dataId,
+        title: `${item.member?.name ?? item.receiverName ?? '계약'} · ${CONTRACT_LABEL[item.contract] ?? ''}`.trim(),
+      },
+    }));
+  };
+
+  return (
+    <div>
+      <header className="contract-list-head">
+        <div className="contract-list-head__main">
+          <h2 className="contract-list-head__title">계약</h2>
+          <p className="contract-list-head__desc">계약서를 조회하고 역할에 따라 신규 계약을 작성합니다.</p>
+        </div>
+        <div className="contract-list-head__actions">
+          {createButtons.map((btn) => (
+            <button
+              key={btn.to}
+              type="button"
+              className="contract-btn-primary"
+              title={btn.title}
+              onClick={() => navigate(btn.to)}
+            >
+              {btn.label}
+            </button>
+          ))}
+
+          {isOwner && (
+            <button
+              type="button"
+              className="contract-btn-secondary"
+              title="트레이너 구하기"
+              onClick={() => setHireModalOpen(true)}
+            >
+              트레이너 구하기
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="contract-toolbar">
+        <div className="roster-filter">
+          <button
+            type="button"
+            className={typeFilter === 0 ? 'roster-filter-btn active' : 'roster-filter-btn'}
+            onClick={() => changeTypeFilter(0)}
+          >
+            전체
+          </button>
+          {[1, 2, 3, 4, 5].map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={typeFilter === type ? 'roster-filter-btn active' : 'roster-filter-btn'}
+              onClick={() => changeTypeFilter(type)}
+            >
+              {CONTRACT_LABEL[type]}
+            </button>
+          ))}
+        </div>
+
+        <div className="contract-toolbar__right">
+          <div className="contract-search">
+            <span className="contract-search__box">
+              <button type="button" className="contract-search__icon" title="검색" onClick={runSearch}>
+                <NavIcon id="search" size={16} />
+              </button>
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
+                placeholder="이름 · 아이디 검색"
+                enterKeyHint="search"
+              />
+              {keyword !== '' && (
+                <button
+                  type="button"
+                  className="contract-search__clear"
+                  title="검색어 지우기"
+                  onClick={clearSearch}
+                >
+                  <NavIcon id="close" size={16} />
+                </button>
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {hireModalOpen && <TrainerRecruitModal onClose={() => setHireModalOpen(false)} />}
+
+      {message && <p className="contract-message">{message}</p>}
+
+      <p className="salary-page__summary">
+        총 <strong>{totalCount}</strong>건
+      </p>
+
+      <div className="contract-table-card">
+        <table className="contract-table">
+          <thead>
+            <tr>
+              <th>계약 ID</th>
+              <th>계약 유형</th>
+              <th>이름</th>
+              <th>상태</th>
+              <th>금액(만원)</th>
+              <th>시작일</th>
+              <th>종료일</th>
+              <th>발행일</th>
+              <th>갱신</th>
+            </tr>
+          </thead>
+          <tbody>
+            {userList.length === 0 && (
+              <tr>
+                <td colSpan="9" className="contract-table__muted">조건에 해당하는 계약이 없어요.</td>
+              </tr>
+            )}
+            {userList.map((item) => (
+              <tr key={item.dataId} className="contract-table__row" onClick={() => openDrawer(item)}>
+                <td>
+                  <button
+                    type="button"
+                    className="contract-table__id"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/fitb/contract/${item.dataId}`); }}
+                  >
+                    {item.dataId}
+                  </button>
+                </td>
+                <td className="contract-table__muted">{CONTRACT_LABEL[item.contract] ?? item.contract}</td>
+                <td className="contract-table__name">{item.member?.name ?? item.receiverName}</td>
+                <td><span className={badgeClass(item.status)}>{item.status}</span></td>
+                <td>{item.contract === 1 ? (item.contractRate != null ? `${item.contractRate}%` : '') : item.amount}</td>
+                <td className="contract-table__muted">{item.startDate}</td>
+                <td className="contract-table__muted">{item.endDate}</td>
+                <td className="contract-table__muted">{item.issueDate}</td>
+                <td>
+                  {item.previousDataId && (
+                    <button
+                      type="button"
+                      className="contract-renew-link"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/fitb/contract/${item.previousDataId}`); }}
+                    >
+                      재계약 #{item.previousDataId}
+                    </button>
+                  )}
+                  {item.relatedDataId && (
+                    <button
+                      type="button"
+                      className="contract-renew-link"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/fitb/contract/${item.relatedDataId}`); }}
+                    >
+                      연계 #{item.relatedDataId}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination pager={pager} onPageChange={setPage} />
+    </div>
+  );
+}
+
+export default Contractpage;

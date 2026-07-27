@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../settle/Pagination';
 import './Contract.css';
 
 // 트레이너 급여(Salary) 탭
-// 백엔드에 트레이너 전용 급여 API가 없어, 기존 지출(settle) 패키지의
-// GET /fitb/settle/expense(소속 gym_id 기준 지출 리스트)를 그대로 읽기 전용으로 호출한다.
-// (백엔드 계약/DTO는 변경하지 않는다 — 응답은 지점 전체 지출이며 트레이너 개인 필터는 없음)
 function SalaryPage() {
   const navigate = useNavigate();
-  const token = localStorage.getItem('accessToken');
 
   const [expenses, setExpenses] = useState([]);
   const [pager, setPager] = useState(null);
@@ -20,22 +16,39 @@ function SalaryPage() {
   const [errorInfo, setErrorInfo] = useState('');
   const [needLogin, setNeedLogin] = useState(false);
 
+  const abortControllerRef = useRef(null);
+
   const currentYear = new Date().getFullYear();
   const filterMonths = Array.from({ length: 12 }, (_, i) => {
     const monthStr = (i + 1).toString().padStart(2, '0');
     return { value: `${currentYear}-${monthStr}`, label: `${currentYear}년 ${monthStr}월` };
   });
 
-  // 지출(급여) 내역을 "페이지 + 조회월" 조건으로 페이징 조회
-  const fetchExpenses = async (targetPage, month) => {
+  const cancelPendingRequests = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
+  // 지출(급여) 내역 페이징 조회
+  const fetchExpenses = useCallback(async (targetPage, month) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const token = localStorage.getItem('accessToken');
+
+    cancelPendingRequests();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setErrorInfo('');
+
     try {
-      const query = new URLSearchParams({ page: targetPage, pageSize: 10 });
+      const query = new URLSearchParams({ page: String(targetPage), pageSize: '10' });
       if (month && month !== 'ALL') query.set('month', month);
+
       const response = await fetch(`${backendUrl}/fitb/settle/expense?${query.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: controller.signal,
       });
 
       if (response.status === 401) {
@@ -46,6 +59,7 @@ function SalaryPage() {
         setTotalAmount(0);
         return;
       }
+
       if (!response.ok) {
         throw new Error('급여 내역 조회 실패');
       }
@@ -56,6 +70,7 @@ function SalaryPage() {
       setTotalCount(data.totalCount || 0);
       setTotalAmount(data.totalAmount || 0);
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.warn('급여 내역 조회 실패:', err.message);
       setErrorInfo('급여 내역을 불러오지 못했습니다.');
       setExpenses([]);
@@ -65,12 +80,12 @@ function SalaryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchExpenses(1, monthFilter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthFilter, token]);
+    return () => cancelPendingRequests();
+  }, [monthFilter, fetchExpenses]);
 
   const handlePageChange = (targetPage) => {
     fetchExpenses(targetPage, monthFilter);
@@ -106,9 +121,11 @@ function SalaryPage() {
 
       <div className="salary-page__filter">
         <select
+          id="salary-month-select"
           className="salary-page__select"
           value={monthFilter}
           onChange={(e) => setMonthFilter(e.target.value)}
+          aria-label="조회 월 선택"
         >
           <option value="ALL">전체 월</option>
           {filterMonths.map((m) => (

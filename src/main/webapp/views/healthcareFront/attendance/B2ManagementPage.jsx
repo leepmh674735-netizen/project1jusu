@@ -7,11 +7,24 @@ import './B2bManagementPage.css';
 
 function B2bManagementPage() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const role = normalizeRole(user.role);
+
+  // localStorage JSON 파싱 안전 처리 (Crash 방지)
+  const getUserRole = () => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (!stored) return '';
+      const user = JSON.parse(stored);
+      return normalizeRole(user?.role);
+    } catch (e) {
+      console.error('사용자 정보 로드 실패:', e);
+      return '';
+    }
+  };
+
+  const role = getUserRole();
 
   return (
-    <section className="b2b-management-page">
+    <section className="b2b-management-page" aria-label="B2B 통합 관리 페이지">
       {role === 'trainer' && <AttendanceConfirm />}
       {role === 'owner' && <OwnerManagement onGoPromotion={() => navigate('/fitb/promotion')} />}
       {role === 'admin' && <AdminManagement />}

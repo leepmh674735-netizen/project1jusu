@@ -16,7 +16,7 @@ public class ComplaintDTO {
 	private Long gymId;
 	private String title;
 	private String content;
-	private LocalDate createAt;
+	private LocalDate createdAt;
 	private String status;
 
 	// ⭐ getComplaintId() 에러 방지용 호환 메소드 추가
