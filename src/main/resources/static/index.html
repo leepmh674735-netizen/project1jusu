@@ -884,7 +884,7 @@
             <!-- Chat logs -->
             <div class="chat-messages" id="chat-messages">
                 <div class="msg msg-buddy">
-                    안녕하세요! 똑똑한 AI 코치 **버디**예요! 오늘 어떤 훈련 강도를 설계하고 싶으신가요? 🐾
+                    안녕하세요! 똑똑한 AI 코치 <strong>버디</strong>예요! 오늘 어떤 훈련 강도를 설계하고 싶으신가요? 🐾
                 </div>
             </div>
 
@@ -1453,11 +1453,11 @@
             if (q.includes('안녕') || q.includes('hello')) {
                 responseText = '안녕하세요! 오늘도 멋지게 운동할 준비가 되셨나요? 버디가 항상 곁에서 응원할게요! 💪🐶';
             } else if (q.includes('추천') || q.includes('루틴') || q.includes('운동')) {
-                responseText = '🏋️‍♂️ **버디의 오늘 추천 근력 루틴**:<br>- 바벨 스쿼트 4세트 × 12회<br>- 레그 프레스 3세트 × 15회<br>- 레그 컬 3세트 × 12회<br>- 플랭크 3세트 × 1분<br><br>하체를 탄탄하게 훈련해 봅시다! 오운완 화이팅! 🐾';
+                responseText = '🏋️‍♂️ <strong>버디의 오늘 추천 근력 루틴</strong>:<br>- 바벨 스쿼트 4세트 × 12회<br>- 레그 프레스 3세트 × 15회<br>- 레그 컬 3세트 × 12회<br>- 플랭크 3세트 × 1분<br><br>하체를 탄탄하게 훈련해 봅시다! 오운완 화이팅! 🐾';
             } else if (q.includes('식단') || q.includes('닭가슴살') || q.includes('단백질')) {
-                responseText = '🥗 **버디의 스포츠 영양학 가이드**:<br>- 운동 전: 바나나 1개 + 아메리카노 1잔<br>- 운동 후: 닭가슴살 120g + 고구마 100g + 야채 샐러드<br><br>근육 합성을 위해 체중 1kg당 1.5g 수준의 단백질 공급을 권장해요!';
+                responseText = '🥗 <strong>버디의 스포츠 영양학 가이드</strong>:<br>- 운동 전: 바나나 1개 + 아메리카노 1잔<br>- 운동 후: 닭가슴살 120g + 고구마 100g + 야채 샐러드<br><br>근육 합성을 위해 체중 1kg당 1.5g 수준의 단백질 공급을 권장해요!';
             } else if (q.includes('이탈') || q.includes('위험') || q.includes('진단') || q.includes('churn')) {
-                responseText = '🔍 **AI 이탈 위험도(Churn) 진단**:<br>현재 회원님의 평균 주당 출석 일수가 **3.1회**로 양호한 등급이며, 마지막 방문 경과일이 **2일** 이내이므로 **[안정군]**에 위치하고 있습니다. 꾸준한 건강 관리를 응원해요!';
+                responseText = '🔍 <strong>AI 이탈 위험도(Churn) 진단</strong>:<br>현재 회원님의 평균 주당 출석 일수가 <strong>3.1회</strong>로 양호한 등급이며, 마지막 방문 경과일이 <strong>2일</strong> 이내이므로 <strong>[안정군]</strong>에 위치하고 있습니다. 꾸준한 건강 관리를 응원해요!';
             } else if (q.includes('쿠폰') || q.includes('체험권')) {
                 responseText = '골든 티켓 박스를 터치해 보세요! PT 무료 체험권이 즉시 발행됩니다. 🎁🎟️';
             }
