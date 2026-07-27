@@ -13,19 +13,25 @@
     <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
-    <style>
+        <style>
+        @property --angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+
         :root {
-            --bg-color: #060913;
-            --card-bg: rgba(13, 20, 35, 0.75);
+            --bg-color: #0c0721;
+            --card-bg: rgba(22, 17, 49, 0.75);
             --border-color: rgba(255, 255, 255, 0.08);
-            --primary-glow: linear-gradient(135deg, #d946ef 0%, #3b82f6 50%, #10b981 100%);
-            --accent-purple: #c084fc;
-            --accent-cyan: #38bdf8;
-            --accent-pink: #f43f5e;
-            --accent-green: #34d399;
-            --accent-yellow: #fbbf24;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
+            --primary-glow: linear-gradient(135deg, #ff9eb5 0%, #beb3f5 50%, #b3f5d2 100%);
+            --accent-purple: #cda8ff;
+            --accent-cyan: #9bf6ff;
+            --accent-pink: #ffadad;
+            --accent-green: #caffbf;
+            --accent-yellow: #fdffb6;
+            --text-main: #fcfbfe;
+            --text-muted: #bbb6df;
         }
 
         body {
@@ -34,13 +40,13 @@
             color: var(--text-main);
             overflow-x: hidden;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(217, 70, 239, 0.15) 0px, transparent 45%),
-                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 45%),
-                radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.06) 0px, transparent 55%);
+                radial-gradient(at 0% 0%, rgba(255, 174, 188, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(186, 153, 255, 0.15) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(202, 255, 191, 0.08) 0px, transparent 65%);
             background-attachment: fixed;
         }
 
-        /* Floating Background Bubbles */
+        /* Floating Background Bubbles (Rainbow & Magic sparkles) */
         .bg-bubble-container {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -51,7 +57,7 @@
         .bg-bubble {
             position: absolute;
             bottom: -250px;
-            background: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, rgba(217, 70, 239, 0) 70%);
+            background: radial-gradient(circle, rgba(255, 173, 173, 0.08) 0%, rgba(253, 255, 182, 0.08) 30%, rgba(155, 246, 255, 0) 70%);
             border-radius: 50%;
             pointer-events: none;
             animation: riseUp 20s infinite linear;
@@ -71,51 +77,67 @@
             background: var(--bg-color);
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(59, 130, 246, 0.3);
+            background: rgba(186, 153, 255, 0.3);
             border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(217, 70, 239, 0.6);
+            background: rgba(255, 174, 188, 0.6);
         }
 
-        /* Premium Glassmorphic Card */
+        /* Premium Glassmorphic Card with rotating rainbow borders */
         .glass-card {
             background: var(--card-bg);
             backdrop-filter: blur(25px);
             -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--border-color);
+            border: 2px solid transparent;
             border-radius: 28px;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
             position: relative;
-            overflow: hidden;
+            z-index: 1;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: visible !important;
         }
-        .glass-card::before {
+        .glass-card::after {
             content: '';
             position: absolute;
-            top: 0; left: -100%;
-            width: 50%; height: 100%;
-            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.04), transparent);
-            transition: all 0.6s ease;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border-radius: 28px;
+            background: conic-gradient(from var(--angle), #ff9eb5, #ffbc99, #ffebb3, #b3f5d2, #b3e6f5, #beb3f5, #ff9eb5);
+            z-index: -1;
+            animation: rotate-gradient 6s linear infinite;
+            opacity: 0.55;
+            transition: opacity 0.3s;
         }
-        .glass-card:hover::before {
-            left: 150%;
+        .glass-card:hover::after {
+            opacity: 0.9;
         }
-        .glass-card:hover {
-            transform: translateY(-8px) scale(1.01);
-            border-color: rgba(56, 189, 248, 0.3);
-            box-shadow: 0 25px 50px rgba(56, 189, 248, 0.2);
+        .glass-card > * {
+            position: relative;
+            z-index: 2;
         }
 
-        /* Interactive Glow Typography */
+        @keyframes rotate-gradient {
+            to {
+                --angle: 360deg;
+            }
+        }
+
+        /* Interactive Glow Typography (Rainbow theme) */
         .gradient-text {
-            background: var(--primary-glow);
+            background: linear-gradient(90deg, #ffadad, #ffd6a5, #fdffb6, #caffbf, #9bf6ff, #a0c4ff, #bdb2ff, #ffc6ff);
+            background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
+            animation: rainbowFlow 4s linear infinite;
         }
         .glow-title {
-            text-shadow: 0 0 25px rgba(56, 189, 248, 0.5);
+            text-shadow: 0 0 15px rgba(186, 153, 255, 0.3);
+        }
+
+        @keyframes rainbowFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
         }
 
         /* Custom Navigation */
@@ -123,7 +145,7 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border-color);
-            background-color: rgba(6, 9, 19, 0.8) !important;
+            background-color: rgba(12, 7, 33, 0.85) !important;
             padding: 18px 0;
         }
         .navbar-brand {
@@ -145,37 +167,37 @@
             transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .mascot-container:hover .mascot-img {
-            transform: scale(1.03);
+            transform: scale(1.04) rotate(2deg);
         }
         
-        /* Mascot States */
+        /* Mascot States (Fairy tales glow) */
         .mascot-normal {
             animation: float-normal 4s ease-in-out infinite;
-            filter: drop-shadow(0 15px 35px rgba(217, 70, 239, 0.45));
+            filter: drop-shadow(0 15px 35px rgba(255, 182, 193, 0.6));
         }
         .mascot-run {
             animation: bounce-run 0.7s ease-in-out infinite;
-            filter: drop-shadow(0 20px 40px rgba(244, 63, 94, 0.75));
+            filter: drop-shadow(0 20px 40px rgba(253, 255, 182, 0.8));
         }
         .mascot-sleep {
             animation: sway-sleep 6s ease-in-out infinite;
-            filter: drop-shadow(0 15px 30px rgba(56, 189, 248, 0.35)) grayscale(0.2);
+            filter: drop-shadow(0 15px 30px rgba(155, 246, 255, 0.5));
         }
 
         @keyframes float-normal {
             0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-14px) rotate(2deg); }
+            50% { transform: translateY(-14px) rotate(3deg); }
             100% { transform: translateY(0px) rotate(0deg); }
         }
         @keyframes bounce-run {
             0%, 100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
-            30% { transform: translateY(-16px) scale(0.92, 1.08) rotate(-3deg); }
-            50% { transform: translateY(-20px) scale(1.08, 0.92) rotate(3deg); }
-            75% { transform: translateY(-8px) scale(1.02, 0.98) rotate(-1deg); }
+            30% { transform: translateY(-18px) scale(0.9, 1.1) rotate(-4deg); }
+            50% { transform: translateY(-22px) scale(1.1, 0.9) rotate(4deg); }
+            75% { transform: translateY(-10px) scale(1.02, 0.98) rotate(-2deg); }
         }
         @keyframes sway-sleep {
-            0%, 100% { transform: translateY(0) rotate(-2deg) scale(0.98); }
-            50% { transform: translateY(-5px) rotate(2deg) scale(1.02); }
+            0%, 100% { transform: translateY(0) rotate(-3deg) scale(0.97); }
+            50% { transform: translateY(-6px) rotate(3deg) scale(1.03); }
         }
 
         /* Mascot Sparkle Particles */
@@ -188,20 +210,21 @@
         }
         @keyframes floatMascotParticle {
             0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
-            100% { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(1.3) rotate(var(--rot)); opacity: 0; }
         }
 
         .speech-bubble {
             position: absolute;
             top: -15px;
             right: -30px;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
-            color: white;
+            background: linear-gradient(135deg, #ff9eb5, #beb3f5);
+            color: #0c0721;
             padding: 14px 22px;
             border-radius: 24px 24px 24px 0px;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 0.95rem;
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 12px 25px rgba(255, 158, 181, 0.3);
+            border: 2px solid white;
             animation: bounceIn 1s;
             pointer-events: none;
             white-space: nowrap;
@@ -219,28 +242,28 @@
             transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .buddy-state-btn:hover, .buddy-state-btn.active {
-            background: var(--accent-cyan);
-            color: #080c14;
-            border-color: var(--accent-cyan);
+            background: #ff9eb5;
+            color: #0c0721;
+            border-color: #ff9eb5;
             transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(56, 189, 248, 0.4);
+            box-shadow: 0 8px 15px rgba(255, 158, 181, 0.4);
         }
 
-        /* Futuristic Neon Buttons */
+        /* Whimsical Magic Buttons */
         .btn-glow {
-            background: var(--primary-glow);
-            color: white;
-            border: none;
-            font-weight: 700;
+            background: linear-gradient(90deg, #ff9eb5, #beb3f5);
+            color: #0c0721;
+            border: 2px solid white;
+            font-weight: 800;
             padding: 14px 32px;
             border-radius: 16px;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 20px rgba(255, 158, 181, 0.3);
         }
         .btn-glow:hover {
             transform: translateY(-4px) scale(1.03);
-            box-shadow: 0 15px 30px rgba(217, 70, 239, 0.5);
-            color: white;
+            box-shadow: 0 15px 30px rgba(186, 153, 255, 0.5);
+            color: #0c0721;
         }
 
         /* Circular Stat Indicator */
@@ -268,7 +291,7 @@
             stroke-dasharray: 314;
             stroke-dashoffset: 314;
             transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
+            filter: drop-shadow(0 0 8px rgba(186, 153, 255, 0.6));
         }
         .circle-text {
             position: absolute;
@@ -281,11 +304,11 @@
             transition: color 0.5s ease;
         }
 
-        /* 3D Cute Coupon Box */
+        /* 3D Whimsical Coupon Box */
         .coupon-box {
             position: relative;
-            background: linear-gradient(135deg, rgba(244, 63, 94, 0.06) 0%, rgba(192, 132, 252, 0.06) 100%);
-            border: 2px dashed rgba(244, 63, 94, 0.4);
+            background: linear-gradient(135deg, rgba(255, 158, 181, 0.08) 0%, rgba(186, 153, 255, 0.08) 100%);
+            border: 2px dashed rgba(255, 158, 181, 0.4);
             border-radius: 24px;
             padding: 35px 25px;
             text-align: center;
@@ -296,16 +319,16 @@
         }
         .coupon-box:hover {
             transform: translateY(-8px) scale(1.02);
-            border-color: var(--accent-pink);
+            border-color: #ff9eb5;
             border-style: solid;
-            background: linear-gradient(135deg, rgba(244, 63, 94, 0.14) 0%, rgba(192, 132, 252, 0.14) 100%);
-            box-shadow: 0 20px 40px rgba(244, 63, 94, 0.25);
+            background: linear-gradient(135deg, rgba(255, 158, 181, 0.16) 0%, rgba(186, 153, 255, 0.16) 100%);
+            box-shadow: 0 20px 40px rgba(255, 158, 181, 0.25);
         }
         .coupon-gift-icon {
             font-size: 3.5rem;
-            color: var(--accent-pink);
+            color: #ff9eb5;
             animation: wobble 2s infinite ease-in-out;
-            filter: drop-shadow(0 5px 15px rgba(244, 63, 94, 0.5));
+            filter: drop-shadow(0 5px 15px rgba(255, 158, 181, 0.6));
         }
         @keyframes wobble {
             0%, 100% { transform: rotate(0deg) scale(1); }
@@ -323,8 +346,8 @@
             animation: ticketPulse 2s infinite alternate;
         }
         @keyframes ticketPulse {
-            0% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-            100% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.6); }
+            0% { box-shadow: 0 0 10px rgba(179, 245, 210, 0.2); }
+            100% { box-shadow: 0 0 25px rgba(179, 245, 210, 0.6); }
         }
 
         .confetti {
@@ -345,15 +368,15 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background-color: var(--accent-green);
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            background-color: #b3f5d2;
+            box-shadow: 0 0 0 0 rgba(179, 245, 210, 0.7);
             animation: pulse 1.5s infinite;
             margin-right: 8px;
         }
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(179, 245, 210, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(179, 245, 210, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(179, 245, 210, 0); }
         }
 
         /* Chat Widget & Window */
@@ -367,14 +390,15 @@
             width: 70px;
             height: 70px;
             border-radius: 50%;
-            background: var(--primary-glow);
+            background: linear-gradient(135deg, #ff9eb5, #beb3f5);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 10px 30px rgba(186, 153, 255, 0.5);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             animation: widgetWiggle 6s infinite ease-in-out;
+            border: 2px solid white;
         }
         .chat-button:hover {
             transform: scale(1.1) rotate(10deg);
@@ -396,16 +420,19 @@
             flex-direction: column;
             overflow: hidden;
             animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 2px solid #ff9eb5;
+            border-radius: 24px;
+            box-shadow: 0 15px 40px rgba(255, 158, 181, 0.2);
         }
         @keyframes slideUp {
             from { transform: translateY(50px) scale(0.85); opacity: 0; }
             to { transform: translateY(0) scale(1); opacity: 1; }
         }
         .chat-header {
-            background: linear-gradient(135deg, rgba(217, 70, 239, 0.9) 0%, rgba(59, 130, 246, 0.9) 100%);
+            background: linear-gradient(135deg, rgba(255, 158, 181, 0.95) 0%, rgba(186, 153, 255, 0.95) 100%);
             padding: 18px;
-            font-weight: 700;
+            font-weight: 800;
+            color: #0c0721;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -415,7 +442,7 @@
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto;
-            background: rgba(8, 12, 20, 0.98);
+            background: rgba(22, 17, 49, 0.98);
             display: flex;
             flex-direction: column;
             gap: 14px;
@@ -441,14 +468,16 @@
             align-self: flex-start;
             border-bottom-left-radius: 0;
             border: 1px solid rgba(255,255,255,0.03);
+            color: #fcfbfe;
         }
         .msg-user {
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
-            color: #080c14;
-            font-weight: 600;
+            background: linear-gradient(135deg, #ff9eb5, #beb3f5);
+            color: #0c0721;
+            font-weight: 700;
             align-self: flex-end;
             border-bottom-right-radius: 0;
-            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 4px 12px rgba(255, 158, 181, 0.25);
+            border: 1px solid white;
         }
         
         /* Paw-print typing indicator */
@@ -461,7 +490,7 @@
             border-radius: 18px;
             border-bottom-left-radius: 0;
             border: 1px solid rgba(255,255,255,0.03);
-            color: var(--accent-cyan);
+            color: #ff9eb5;
             align-self: flex-start;
         }
         .paw-dot {
@@ -482,12 +511,12 @@
             flex-wrap: wrap;
             gap: 8px;
             padding: 0 15px 10px 15px;
-            background: rgba(8, 12, 20, 0.98);
+            background: rgba(22, 17, 49, 0.98);
         }
         .chat-chip {
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            color: var(--accent-cyan);
+            background: rgba(255, 158, 181, 0.1);
+            border: 1px solid rgba(255, 158, 181, 0.2);
+            color: #ff9eb5;
             border-radius: 20px;
             padding: 6px 12px;
             font-size: 0.78rem;
@@ -496,19 +525,19 @@
             transition: all 0.2s;
         }
         .chat-chip:hover {
-            background: var(--accent-cyan);
-            color: #080c14;
+            background: #ff9eb5;
+            color: #0c0721;
             transform: translateY(-1px);
         }
         .chat-input-area {
             display: flex;
             padding: 12px;
-            background: rgba(17, 24, 39, 0.9);
+            background: rgba(22, 17, 49, 0.9);
             border-top: 1px solid var(--border-color);
         }
         .chat-input-area input {
             flex-grow: 1;
-            background: rgba(8, 12, 20, 0.6);
+            background: rgba(12, 7, 33, 0.6);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             color: white;
@@ -517,9 +546,9 @@
             font-size: 0.9rem;
         }
         .chat-input-area button {
-            background: var(--accent-cyan);
+            background: #ff9eb5;
             border: none;
-            color: #080c14;
+            color: #0c0721;
             font-weight: bold;
             border-radius: 12px;
             width: 46px;
@@ -530,7 +559,7 @@
             justify-content: center;
         }
         .chat-input-area button:hover {
-            background: var(--accent-purple);
+            background: #beb3f5;
             transform: scale(1.05);
         }
 
@@ -546,20 +575,20 @@
             position: relative;
             border-radius: 50%;
             box-sizing: content-box;
-            border: 4px solid var(--accent-green);
+            border: 4px solid #b3f5d2;
         }
         .check-icon::after {
             content: '';
             position: absolute;
             top: 14px; left: 32px;
             width: 14px; height: 35px;
-            border: solid var(--accent-green);
+            border: solid #b3f5d2;
             border-width: 0 4px 4px 0;
             transform: rotate(45deg);
             transform-origin: 100% 100%;
         }
 
-        /* Keyboard Simulator Theme */
+        /* Keyboard Simulator Theme (Macaron Candy Colors) */
         .keypad-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -568,41 +597,54 @@
             margin: 15px auto 0 auto;
         }
         .keypad-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 1px solid var(--border-color);
-            border-bottom: 3px solid rgba(255, 255, 255, 0.05);
-            color: white;
+            border: 2px solid white;
+            border-bottom: 4px solid rgba(0, 0, 0, 0.2) !important;
+            color: #0c0721 !important;
             padding: 12px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1.1rem;
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 1.15rem;
             cursor: pointer;
-            transition: all 0.1s;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+            transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
         }
+        
+        /* Macaron colors row by row */
+        .keypad-grid button:nth-child(1) { background: linear-gradient(135deg, #ffadad, #ffd6a5); }
+        .keypad-grid button:nth-child(2) { background: linear-gradient(135deg, #ffd6a5, #fdffb6); }
+        .keypad-grid button:nth-child(3) { background: linear-gradient(135deg, #fdffb6, #caffbf); }
+        .keypad-grid button:nth-child(4) { background: linear-gradient(135deg, #caffbf, #9bf6ff); }
+        .keypad-grid button:nth-child(5) { background: linear-gradient(135deg, #9bf6ff, #a0c4ff); }
+        .keypad-grid button:nth-child(6) { background: linear-gradient(135deg, #a0c4ff, #bdb2ff); }
+        .keypad-grid button:nth-child(7) { background: linear-gradient(135deg, #bdb2ff, #ffc6ff); }
+        .keypad-grid button:nth-child(8) { background: linear-gradient(135deg, #ffc6ff, #ffadad); }
+        .keypad-grid button:nth-child(9) { background: linear-gradient(135deg, #ffadad, #ffd6a5); }
+        
         .keypad-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(56, 189, 248, 0.3);
+            filter: brightness(1.08);
             transform: translateY(-2px);
         }
         .keypad-btn:active {
             transform: translateY(2px);
-            border-bottom-width: 1px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            border-bottom-width: 2px !important;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.2);
         }
         .keypad-btn.text-danger {
-            color: var(--accent-pink);
-            border-color: rgba(244, 63, 94, 0.2);
+            background: linear-gradient(135deg, #ffadad, #ff6b6b) !important;
+            color: white !important;
         }
         .keypad-btn.text-info {
-            color: var(--accent-cyan);
-            border-color: rgba(56, 189, 248, 0.2);
+            background: linear-gradient(135deg, #9bf6ff, #00b4d8) !important;
+            color: #0c0721 !important;
+        }
+        .keypad-grid button:nth-child(11) {
+            background: linear-gradient(135deg, #fdffb6, #e2e774);
         }
         
         .input-shake {
             animation: inputShake 0.4s ease-in-out;
-            border-color: var(--accent-pink) !important;
-            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25) !important;
+            border-color: #ff9eb5 !important;
+            box-shadow: 0 0 0 3px rgba(255, 158, 181, 0.25) !important;
         }
         @keyframes inputShake {
             0%, 100% { transform: translateX(0); }
@@ -614,8 +656,8 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(179, 245, 210, 0.15);
+            border: 1px solid rgba(179, 245, 210, 0.3);
             backdrop-filter: blur(10px);
             padding: 12px 20px;
             border-radius: 16px;
@@ -906,10 +948,10 @@
     <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     
-    <script>
+        <script>
         let isLiveMode = false;
 
-        // Sound effects using Web Audio API
+        // Magical Disney/Pokemon style Sound synthesizer using Web Audio API
         let audioCtx = null;
         function playCuteSound(type) {
             try {
@@ -920,53 +962,72 @@
                     audioCtx.resume();
                 }
                 
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
                 const now = audioCtx.currentTime;
                 
                 if (type === 'click') {
+                    // Sweet high-pitched click bubble pop
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
-                    gain.gain.setValueAtTime(0.04, now);
+                    osc.frequency.setValueAtTime(900, now);
+                    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.08);
+                    gain.gain.setValueAtTime(0.03, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
                     osc.start(now);
                     osc.stop(now + 0.08);
                 } else if (type === 'success') {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, now); // C5
-                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-                    gain.gain.setValueAtTime(0.08, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-                    osc.start(now);
-                    osc.stop(now + 0.25);
+                    // Magical Fairy Chime / Pokemon Recovery Sound (C5 -> E5 -> G5 -> C6 arpeggio)
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const noteOsc = audioCtx.createOscillator();
+                        const noteGain = audioCtx.createGain();
+                        noteOsc.connect(noteGain);
+                        noteGain.connect(audioCtx.destination);
+                        
+                        noteOsc.type = 'sine';
+                        noteOsc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                        
+                        noteGain.gain.setValueAtTime(0.05, now + idx * 0.05);
+                        noteGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.18);
+                        
+                        noteOsc.start(now + idx * 0.05);
+                        noteOsc.stop(now + idx * 0.05 + 0.18);
+                    });
                 } else if (type === 'popup') {
+                    // Whimsical magical bubble pop
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(350, now);
-                    osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
-                    gain.gain.setValueAtTime(0.08, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(950, now + 0.1);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
                     osc.start(now);
-                    osc.stop(now + 0.12);
+                    osc.stop(now + 0.1);
                 } else if (type === 'error') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(160, now);
-                    osc.frequency.linearRampToValueAtTime(110, now + 0.2);
+                    // Sweet classic cute retro cartoon buzzer sound
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(180, now + 0.08);
                     gain.gain.setValueAtTime(0.05, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
                     osc.start(now);
-                    osc.stop(now + 0.2);
+                    osc.stop(now + 0.18);
                 }
             } catch (e) {
                 console.warn('Audio feedback failed:', e);
             }
         }
 
-        // Mascot particle loop generator (Zzz, fires, sparkles)
+        // Mascot particle loop generator (Magical fairy dust / Disney sparkles)
         function spawnMascotParticleLoop() {
             const activeStateBtn = document.querySelector('.buddy-state-btn.active');
             let nextDelay = 1000;
@@ -982,17 +1043,21 @@
                     let size = Math.random() * 10 + 16;
                     
                     if (stateId === 'state-norm') {
-                        const chars = ['🐾', '✨', '⭐', '🌸'];
+                        // Magic pink/gold stars and sparkles
+                        const chars = ['✨', '⭐', '💖', '🐾', '🌸'];
                         particleChar = chars[Math.floor(Math.random() * chars.length)];
-                        nextDelay = 1200;
+                        nextDelay = 1000;
                     } else if (stateId === 'state-run') {
-                        const chars = ['🔥', '💪', '⚡', '🏋️‍♀️'];
+                        // High energy thunder sparks
+                        const chars = ['⚡', '🔥', '⭐', '👑', '🌈'];
                         particleChar = chars[Math.floor(Math.random() * chars.length)];
-                        nextDelay = 400; // fast rate
+                        nextDelay = 350; // fast rate
                         dy = -160 - Math.random() * 100;
                     } else if (stateId === 'state-sleep') {
-                        particleChar = '💤';
-                        nextDelay = 2000; // slow rate
+                        // Soft sleeping clouds & stars
+                        const chars = ['💤', '☁️', '✨', '🌙'];
+                        particleChar = chars[Math.floor(Math.random() * chars.length)];
+                        nextDelay = 1800; // slow rate
                         dy = -70 - Math.random() * 40;
                         size = Math.random() * 6 + 12;
                     }
@@ -1058,24 +1123,24 @@
 
             // Color coding percentage text based on congestion
             if (percent < 40) {
-                text.style.color = '#34d399'; // Green - Low
+                text.style.color = '#caffbf'; // Pastel Green - Low
             } else if (percent < 75) {
-                text.style.color = '#fbbf24'; // Yellow - Moderate
+                text.style.color = '#fdffb6'; // Pastel Yellow - Moderate
             } else {
-                text.style.color = '#f43f5e'; // Red - High
+                text.style.color = '#ffadad'; // Pastel Red - High
             }
             
             document.getElementById('current-users-count').innerText = Math.round(50 * (percent/100));
         }
 
-        // Mascot interaction speech phrases
+        // Disney/Pokemon magical speech quotes
         const buddyQuotes = [
-            "하체 운동은 스쿼트부터 시작인 거 아시죠? 🐾",
-            "조금 더 힘을 내서 오늘의 운동 루틴을 마무리해봐요! 💪",
-            "운동 끝난 뒤 30분 이내에 닭가슴살 섭취는 필수라멍! 🍖",
-            "포기하고 싶을 때 한 번 더 미는 것이 진정한 득근! 🔥",
-            "출석체크 후에 멋지게 덤벨을 들으러 가요! 🐾",
-            "오늘도 오운완 완료하고 시원하게 프로틴 한 잔 하자멍! 🥤"
+            "트레이너님, 스쿼트 10회 도전해보자멍! 🐾",
+            "피카츄처럼 백만볼트 에너지를 내봐요! ⚡💪",
+            "신데렐라 마법처럼 오운완 성공해보자멍! ✨🏰",
+            "포기하지 않는 것이 우리의 약속! 몬스터볼 던지듯이 영차! 🎾",
+            "체크인하고 체육관 배지를 획득하러 가봐요! 🏆🐾",
+            "마법 같은 근육 회복을 위해 단백질 닭가슴살 냠냠! 🍗"
         ];
 
         function triggerMascotSpeak() {
@@ -1102,15 +1167,15 @@
 
             if (state === 'normal') {
                 document.getElementById('state-norm').classList.add('active');
-                bubble.innerText = "반가워요! 오운완 하러 가볼까요? 🐾";
+                bubble.innerText = "안녕! 오늘의 포켓몬 트레이닝을 시작하자멍! 🐾";
                 mascot.classList.add('mascot-normal');
             } else if (state === 'run') {
                 document.getElementById('state-run').classList.add('active');
-                bubble.innerText = "오늘 덤벨 숄더 프레스 도전!! 🏋️‍♀️🔥";
+                bubble.innerText = "에너지가 솟아오른다멍! 백만볼트!! ⚡💪🔥";
                 mascot.classList.add('mascot-run');
             } else if (state === 'sleep') {
                 document.getElementById('state-sleep').classList.add('active');
-                bubble.innerText = "잠깐 휴식을 취하면서 수분을 보충해라멍... 💤";
+                bubble.innerText = "휴식도 훈련의 일부라멍... 쿨쿨... 💤☁️";
                 mascot.classList.add('mascot-sleep');
             }
         }
@@ -1246,33 +1311,42 @@
             const consoleEl = document.getElementById('console-output');
             consoleEl.style.display = 'block';
             
-            let color = '#34d399'; // success
-            if (type === 'danger') color = '#f43f5e';
-            if (type === 'warning') color = '#fbbf24';
+            let color = '#caffbf'; // success
+            if (type === 'danger') color = '#ffadad';
+            if (type === 'warning') color = '#fdffb6';
             
             const timestamp = new Date().toLocaleTimeString();
             consoleEl.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
             consoleEl.scrollTop = consoleEl.scrollHeight;
         }
 
-        // Custom Confetti physics explosion
+        // Disney/Pokemon Rainbow Star Emitter Confetti physics explosion
         function createConfettiExplosion(parent) {
             const rect = parent.getBoundingClientRect();
             const centerX = rect.width / 2;
-            const centerY = rect.height / 3; // burst from upper middle
+            const centerY = rect.height / 3;
             
-            const colors = ['#c084fc', '#38bdf8', '#f43f5e', '#fbbf24', '#34d399'];
-            for (let i = 0; i < 65; i++) {
+            const colors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#bdb2ff', '#ffc6ff'];
+            const shapes = ['⭐', '💖', '✨', '🎀', '🎈', '🍭', '🐾', '🌸'];
+            
+            for (let i = 0; i < 75; i++) {
                 const p = document.createElement('div');
                 p.className = 'custom-particle';
                 
-                const isCircle = Math.random() > 0.5;
-                p.style.borderRadius = isCircle ? '50%' : '2px';
-                p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                const isEmoji = Math.random() > 0.45;
+                if (isEmoji) {
+                    p.innerText = shapes[Math.floor(Math.random() * shapes.length)];
+                    p.style.fontSize = `${Math.random() * 12 + 12}px`;
+                    p.style.background = 'transparent';
+                } else {
+                    const isCircle = Math.random() > 0.5;
+                    p.style.borderRadius = isCircle ? '50%' : '2px';
+                    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    const size = Math.random() * 8 + 6;
+                    p.style.width = `${size}px`;
+                    p.style.height = `${size}px`;
+                }
                 
-                const size = Math.random() * 8 + 6;
-                p.style.width = `${size}px`;
-                p.style.height = `${size}px`;
                 p.style.position = 'absolute';
                 p.style.left = `${centerX}px`;
                 p.style.top = `${centerY}px`;
@@ -1281,9 +1355,9 @@
                 parent.appendChild(p);
                 
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 8 + 5;
+                const speed = Math.random() * 9 + 5;
                 let vx = Math.cos(angle) * speed;
-                let vy = Math.sin(angle) * speed - 2.5; // upward bias
+                let vy = Math.sin(angle) * speed - 3.0; // upward bias
                 let posX = centerX;
                 let posY = centerY;
                 let rotation = Math.random() * 360;
@@ -1292,11 +1366,11 @@
                 
                 const anim = () => {
                     vy += 0.22; // gravity
-                    vx *= 0.985; // drag
+                    vx *= 0.983; // drag
                     posX += vx;
                     posY += vy;
                     rotation += rotSpeed;
-                    opacity -= 0.015;
+                    opacity -= 0.012;
                     
                     p.style.transform = `translate(${posX - centerX}px, ${posY - centerY}px) rotate(${rotation}deg)`;
                     p.style.opacity = opacity;
@@ -1325,8 +1399,8 @@
             giftIcon.className = 'fa-solid fa-ticket animate__animated animate__rubberBand text-warning';
             giftTitle.innerText = '🎟️ PT 1회 무료 이용권 발급 완료!';
             giftDesc.innerHTML = '쿠폰 번호: <strong class="text-info">BUDDY-PT-FREE25</strong>';
-            giftBox.style.borderColor = '#10b981';
-            giftBox.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(6, 182, 212, 0.18) 100%)';
+            giftBox.style.borderColor = '#b3f5d2';
+            giftBox.style.background = 'linear-gradient(135deg, rgba(179, 245, 210, 0.18) 0%, rgba(186, 153, 255, 0.18) 100%)';
 
             // Create stunning physics confetti explosion
             createConfettiExplosion(giftBox);
@@ -1335,7 +1409,7 @@
             const barcode = document.createElement('div');
             barcode.className = 'mt-3 pt-3 border-top border-secondary text-center animate__animated animate__slideInUp ticket-glow';
             barcode.innerHTML = `
-                <div style="font-family: 'Courier New', monospace; font-size: 1.8rem; letter-spacing: 5px; color: var(--accent-cyan); font-weight: bold; text-shadow: 0 0 8px rgba(56,189,248,0.5);">||| | |||| | || |||</div>
+                <div style="font-family: 'Courier New', monospace; font-size: 1.8rem; letter-spacing: 5px; color: var(--accent-cyan); font-weight: bold; text-shadow: 0 0 8px rgba(155,246,255,0.5);">||| | |||| | || |||</div>
                 <div class="small text-muted mt-1">BUDDY-PT-FREE25</div>
             `;
             giftBox.appendChild(barcode);
