@@ -2,17 +2,23 @@
 
 > **귀여운 캐릭터 마스코트와 AI 기술이 접목된 차세대 지능형 체육관/피트니스 센터 관리 플랫폼입니다.**
 
-## 🖥️ 홈페이지 프리뷰 (Main Landing Page)
-새롭게 디자인된 다크 글래스모피즘 기반 캐릭터 테마 홈페이지의 레이아웃입니다:
+---
 
-![FitBuddy AI Homepage Preview](src/main/resources/static/assets/images/fitbuddy_landing_mockup.jpg)
+## 🖥️ 홈페이지 프리뷰 (Preview)
+
+| 메인 레인보우 드림 테마 | 다크 글래스모피즘 랜딩 |
+| :---: | :---: |
+| ![Rainbow Dream](src/main/resources/static/assets/images/fitbuddy_rainbow_dream.jpg) | ![Landing Mockup](src/main/resources/static/assets/images/fitbuddy_landing_mockup.jpg) |
+
+| 메인 마스코트 버디 (Buddy) | 대시보드 및 상세 UI |
+| :---: | :---: |
+| ![Mascot](src/main/resources/static/assets/images/mascot.png) | ![Home Preview](src/main/resources/static/assets/images/fitbuddy_home_preview.jpg) |
 
 ---
 
-## 🎨 메인 마스코트: 버디 (Buddy)
-본 플랫폼의 마스코트이자 지능형 운동 가이드를 제공하는 3D Chibi 스타일의 운동 도우미 캐릭터입니다.
+## 📹 실제 동작 데모 (Demo Video)
 
-![FitBuddy Mascot](src/main/resources/static/assets/images/mascot.png)
+![FitBuddy AI Demo](src/main/resources/static/assets/images/fitbuddy_demo.gif)
 
 ---
 
@@ -26,11 +32,20 @@
 - **지능형 운동 가이드**: 우측 하단의 플로팅 상담 버블을 클릭하면 3D 마스코트 버디가 인사하며 실시간 운동 추천, 식단 관리 팁, 멤버십 할인 쿠폰 정보를 안내해 줍니다.
 - **하이브리드 예외 처리**: 백엔드 DB 서버가 오프라인일 경우에도 프론트엔드 자체 시뮬레이션 모드로 매끄럽게 작동하도록 구성되어 있습니다.
 
-### 3. 스페셜 멤버십 쿠폰 선물 상자 (confetti 애니메이션)
+### 3. 스페셜 멤버십 쿠폰 선물 상자 (Confetti 애니메이션)
 - **쿠폰 이벤트**: 메인 화면의 다이어그램 상자를 마우스로 클릭하면 상자가 요동치며 열리고, 화면 가득 축하 색종이(Confetti)들이 휘날리며 특별 쿠폰 코드가 발급되는 애니메이션 모션이 제공됩니다.
 
 ### 4. 체육관 소통창 (Gym Boss) 건의함
 - **불편 및 건의사항 접수**: 시설 불편 사항 등을 입력하면 사장님 및 트레이너에게 건의 내역이 전송되는 폼(Form)이 예쁜 인터랙션 디자인과 함께 탑재되어 있습니다.
+
+---
+
+## 🛠️ 기술 스택 (Tech Stack)
+
+- **Frontend**: HTML5, Vanilla CSS, JS (ES6+), Bootstrap 5, Animate.css, Canvas Confetti
+- **Backend**: Spring Boot, Java 21, JPA/Hibernate, MyBatis, Spring Security
+- **Database**: PostgreSQL (Supabase Cloud hosting)
+- **AI Integration**: Anthropic Messages API (Claude model Integration)
 
 ---
 
@@ -45,5 +60,4 @@ $env:JAVA_HOME="C:\Program Files\Java\jdk-21.0.10"; .\gradlew bootRun
 
 ### 2. 브라우저 접속
 서버 구동 완료 후 웹 브라우저를 통해 아래 주소로 접속해 주세요.
-
 - **URL**: [http://localhost:8181/](http://localhost:8181/)
