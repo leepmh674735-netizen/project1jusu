@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import ClientPagination from '../components/ClientPagination';
+import { fetchWithToken } from '../utils/fetchWithToken'; // 공통 fetch 래퍼 유틸리티
 
 const PAGE_SIZE = 10;
 
@@ -11,7 +12,7 @@ const getPageItems = (items, page) => {
   return items.slice(startIndex, startIndex + PAGE_SIZE);
 };
 
-// 날짜 차이(D-day) 계산 안전 헬퍼 (타임존 오류 방지)
+// 날짜 차이(D-day) 계산 안전 헬퍼
 const calculateDday = (targetDateStr) => {
   if (!targetDateStr) return null;
   const target = new Date(targetDateStr.substring(0, 10));
@@ -41,10 +42,8 @@ function OwnerManagement({ onGoPromotion, gymId }) {
     }
   };
 
-  const fetchOverview = useCallback(async (resetPage = false) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
+  // 1. 지점 개요 (트레이너 성과 & 재등록 대상) 조회
+  const fetchOverview = useCallback(async (resetPage = false, signal) => {
     if (resetPage) {
       setTrainerPage(1);
       setRebookPage(1);
@@ -52,9 +51,10 @@ function OwnerManagement({ onGoPromotion, gymId }) {
 
     try {
       const query = gymId ? `?gymId=${gymId}` : '';
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/owner/overview${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetchWithToken(
+        `${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/owner/overview${query}`,
+        { signal }
+      );
       if (response.ok) {
         const data = await response.json();
         const nextTrainers = data.trainers || [];
@@ -73,19 +73,18 @@ function OwnerManagement({ onGoPromotion, gymId }) {
     }
   }, [gymId]);
 
-  const fetchMembers = useCallback(async (resetPage = false) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
+  // 2. 활성 회원 명단 조회
+  const fetchMembers = useCallback(async (resetPage = false, signal) => {
     if (resetPage) {
       setMemberPage(1);
     }
 
     try {
       const query = gymId ? `?gymId=${gymId}` : '';
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/roster${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetchWithToken(
+        `${import.meta.env.VITE_BACKEND_URL}/contract/roster${query}`,
+        { signal }
+      );
       if (response.ok) {
         const data = await response.json();
         const activeMembers = (data || []).filter(
@@ -103,16 +102,15 @@ function OwnerManagement({ onGoPromotion, gymId }) {
     }
   }, [gymId]);
 
-  const fetchContractCoupons = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
+  // 3. 결제 쿠폰 사용 매핑 정보 조회
+  const fetchContractCoupons = useCallback(async (signal) => {
     setPayCouponMap(null);
     setPayCouponStatus('loading');
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/payment/paylist/export`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetchWithToken(
+        `${import.meta.env.VITE_BACKEND_URL}/fitb/payment/paylist/export`,
+        { signal }
+      );
       if (response.ok) {
         const data = await response.json();
         const map = {};
@@ -138,9 +136,9 @@ function OwnerManagement({ onGoPromotion, gymId }) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    fetchOverview(true);
-    fetchMembers(true);
-    fetchContractCoupons();
+    fetchOverview(true, controller.signal);
+    fetchMembers(true, controller.signal);
+    fetchContractCoupons(controller.signal);
 
     return () => cancelPendingRequest();
   }, [gymId, fetchOverview, fetchMembers, fetchContractCoupons]);
@@ -358,11 +356,11 @@ function OwnerManagement({ onGoPromotion, gymId }) {
                 </tr>
               </thead>
               <tbody>
-                {rebookPageItems.map((rebook) => {
+                {rebookPageItems.map((rebook, index) => {
                   const isPt = rebook.remainingCount != null;
                   const dday = calculateDday(rebook.endDate);
                   return (
-                    <tr key={`${rebook.category}-${rebook.dataId}`}>
+                    <tr key={`${rebook.category}-${rebook.dataId ?? index}`}>
                       <td style={{ padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
                         <span style={{ fontSize: '11px', backgroundColor: isPt ? '#7c3aed' : '#0284c7', color: '#fff', padding: '3px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
                           {rebook.category}

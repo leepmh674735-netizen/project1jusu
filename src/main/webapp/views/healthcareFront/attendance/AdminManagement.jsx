@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchWithToken } from '../utils/fetchWithToken'; // 공통 fetch 래퍼 유틸리티
 import './AdminManagement.css';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -79,14 +80,8 @@ function AdminManagement() {
     }
   };
 
+  // 1. 운동시설 제휴 계약 목록 조회 (fetchWithToken 연동)
   const fetchContracts = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setLoading(false);
-      setError('로그인이 필요합니다.');
-      return;
-    }
-
     cancelPendingRequest();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -95,8 +90,7 @@ function AdminManagement() {
     setError('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/roster`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/contract/roster`, {
         signal: controller.signal,
       });
 
@@ -105,7 +99,8 @@ function AdminManagement() {
         return;
       }
 
-      setContracts(await response.json());
+      const data = await response.json();
+      setContracts(Array.isArray(data) ? data : []);
     } catch (fetchError) {
       if (fetchError.name !== 'AbortError') {
         console.error('운동시설 계약 현황 조회 실패:', fetchError);
@@ -123,12 +118,9 @@ function AdminManagement() {
     return () => cancelPendingRequest();
   }, [fetchContracts]);
 
+  // 2. 특정 지점 회원 명단 조회 (fetchWithToken 연동)
   const fetchMembers = useCallback(async (gymId) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setMembersError('로그인이 필요합니다.');
-      return;
-    }
+    if (!gymId) return;
 
     cancelPendingRequest();
     const controller = new AbortController();
@@ -140,8 +132,7 @@ function AdminManagement() {
 
     try {
       const params = new URLSearchParams({ gymId: String(gymId) });
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/roster?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/contract/roster?${params}`, {
         signal: controller.signal,
       });
 
@@ -151,7 +142,9 @@ function AdminManagement() {
       }
 
       const roster = await response.json();
-      setMembers(roster.filter((item) => item.member?.role?.toLowerCase() === 'member'));
+      if (Array.isArray(roster)) {
+        setMembers(roster.filter((item) => item.member?.role?.toLowerCase() === 'member'));
+      }
     } catch (fetchError) {
       if (fetchError.name !== 'AbortError') {
         console.error('운동시설 회원 명단 조회 실패:', fetchError);
@@ -164,13 +157,8 @@ function AdminManagement() {
     }
   }, []);
 
+  // 3. 구직 트레이너 목록 조회 (fetchWithToken 연동)
   const fetchJobSeekers = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setJobError('로그인이 필요합니다.');
-      return;
-    }
-
     cancelPendingRequest();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -179,8 +167,7 @@ function AdminManagement() {
     setJobError('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/jobseekers`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/contract/jobseekers`, {
         signal: controller.signal,
       });
 
@@ -189,7 +176,8 @@ function AdminManagement() {
         return;
       }
 
-      setJobSeekers(await response.json());
+      const data = await response.json();
+      setJobSeekers(Array.isArray(data) ? data : []);
       setJobLoaded(true);
     } catch (fetchError) {
       if (fetchError.name !== 'AbortError') {

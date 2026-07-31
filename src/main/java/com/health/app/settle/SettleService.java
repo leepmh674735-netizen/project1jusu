@@ -1,13 +1,8 @@
 package com.health.app.settle;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.health.app.alarm.AlarmService;
 import com.health.app.contract.ContractDTO;
 import com.health.app.member.MemberDTO;
@@ -15,210 +10,221 @@ import com.health.app.member.MemberService;
 import com.health.app.pager.PagedResponse;
 import com.health.app.pager.Pager;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class SettleService {
 
-	private final SettleMapper settleMapper;
-	private final AlarmService alarmService;
-	private final MemberService memberService;
+    @Autowired
+    private SettleMapper settleMapper;
 
-	private Long resolveOwnerReceiver(Long gymId) {
-		if (gymId == null) {
-			return null;
-		}
-		try {
-			MemberDTO owner = memberService.findOwnerByGymId(gymId);
-			return owner != null ? owner.getUsername() : null;
-		} catch (Exception e) {
-			log.error("gym 사장님 계정 조회 실패 (gymId={}): {}", gymId, e.getMessage());
-			return null;
-		}
-	}
+    @Autowired
+    private AlarmService alarmService;
 
-	private void sendAlarmSafely(Long receiver, String message, String link, String category) {
-		try {
-			alarmService.sendAlarm(receiver, null, message, link, category);
-		} catch (Exception e) {
-			log.error("알림 발송 실패 (receiver={}, category={}): {}", receiver, category, e.getMessage());
-		}
-	}
+    @Autowired
+    private MemberService memberService;
 
-	@Transactional
-	public boolean recalcCommissionAfterPaymentDeleted(Long gymId, LocalDate payDate) throws Exception {
-		LocalDate monthStart = payDate.withDayOfMonth(1);
+    private Long resolveOwnerReceiver(Long gymId) {
+        if (gymId == null) {
+            return null;
+        }
+        try {
+            MemberDTO owner = memberService.findOwnerByGymId(gymId);
+            return owner != null ? owner.getUsername() : null;
+        } catch (Exception e) {
+            System.err.println("gym 사장님 계정 조회 실패 (gymId=" + gymId + "): " + e.getMessage());
+            return null;
+        }
+    }
 
-		CommissionDTO settlement = settleMapper.getCommissionByGymMonth(gymId, monthStart);
-		if (settlement == null) {
-			return false;
-		}
-		if ("지급".equals(settlement.getStatus())) {
-			Long receiver = resolveOwnerReceiver(gymId);
-			if (receiver != null) {
-				sendAlarmSafely(receiver,
-						"이미 지급 완료된 정산 금액이라 매출 삭제가 자동 반영되지 않았습니다. 확인이 필요합니다.",
-						"/fitb/Settlepage", "SETTLE_RECALC");
-			}
-			return true;
-		}
+    private void sendAlarmSafely(Long receiver, String message, String link, String category) {
+        try {
+            alarmService.sendAlarm(receiver, null, message, link, category);
+        } catch (Exception e) {
+            System.err.println("알림 발송 실패 (receiver=" + receiver + ", category=" + category + "): " + e.getMessage());
+        }
+    }
 
-		LocalDate monthEnd = monthStart.with(TemporalAdjusters.lastDayOfMonth());
+    @org.springframework.transaction.annotation.Transactional
+    public boolean recalcCommissionAfterPaymentDeleted(Long gymId, java.time.LocalDate payDate) throws Exception {
+        java.time.LocalDate monthStart = payDate.withDayOfMonth(1);
+        CommissionDTO settlement = settleMapper.getCommissionByGymAndMonth(gymId, monthStart);
+        if (settlement == null) {
+            return false;
+        }
+        if ("지급".equals(settlement.getStatus())) {
+            Long receiver = resolveOwnerReceiver(gymId);
+            if (receiver != null) {
+                sendAlarmSafely(receiver,
+                        "이미 지급 완료된 정산 금액이라 매출 삭제가 자동 반영되지 않았습니다. 확인이 필요합니다.",
+                        "/fitb/Settlepage", "SETTLE_RECALC");
+            }
+            return true;
+        }
 
-		Long newCommission = settleMapper.sumGymSalesForMonth(gymId, monthStart, monthEnd, settlement.getCommissionRate());
-		settleMapper.updateCommissionAmount(settlement.getSettlementId(), newCommission != null ? newCommission : 0L);
+        java.time.LocalDate monthEnd = monthStart.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
+        long newCommission = settleMapper.sumGymSalesForMonth(gymId, monthStart, monthEnd, settlement.getCommissionRate());
+        settleMapper.updateCommissionAmount(settlement.getSettlementId(), newCommission);
 
-		return false;
-	}
+        return false;
+    }
 
-	public PagedResponse<CommissionDTO> commissionList(Pager pager, String sort) throws Exception {
-		pager.makeOffset();
-		List<CommissionDTO> items = settleMapper.commissionList(pager, sort);
-		long totalCount = settleMapper.commissionListCount(pager);
-		pager.makeBlock(totalCount);
+    public PagedResponse<CommissionDTO> commissionList(Pager pager, String sort) throws Exception {
+        pager.makeOffset();
+        List<CommissionDTO> items = settleMapper.commissionList(pager, sort);
+        long totalCount = settleMapper.commissionListCount(pager);
+        pager.makeBlock(totalCount);
 
-		return new PagedResponse<>(items, pager, totalCount, 0L);
-	}
+        return new PagedResponse<>(items, pager, totalCount, 0L);
+    }
 
-	public List<CommissionDTO> commissionListAll(Pager pager) throws Exception {
-		return settleMapper.commissionListAll(pager);
-	}
+    public List<CommissionDTO> commissionListAll(Pager pager) throws Exception {
+        return settleMapper.commissionListAll(pager);
+    }
 
-	public CommissionStatsDTO commissionStats() throws Exception {
-		return settleMapper.commissionStats();
-	}
+    public CommissionStatsDTO commissionStats() throws Exception {
+        return settleMapper.commissionStats();
+    }
 
-	@Transactional
-	public int toggleCommissionStatus(Long settlementId) throws Exception {
-		CommissionDTO commission = settleMapper.getCommissionById(settlementId);
-		if (commission != null) {
-			if ("지급".equals(commission.getStatus())) {
-				commission.setStatus("미지급");
-				commission.setSettledAt(null);
-			} else {
-				commission.setStatus("지급");
-				commission.setSettledAt(LocalDate.now());
-			}
-			return settleMapper.updateCommissionStatus(commission);
-		}
-		return 0;
-	}
+    public OwnerSummaryDTO ownerSettleSummary(Long username, String month) throws Exception {
+        return settleMapper.ownerSettleSummary(username, month);
+    }
 
-	public PagedResponse<ExpenseDTO> expenseList(Long username, Pager pager, String sort) throws Exception {
-		pager.makeOffset();
-		List<ExpenseDTO> items = settleMapper.expenseList(username, pager, sort);
-		long totalCount = settleMapper.expenseListCount(username, pager);
-		long totalAmount = settleMapper.expenseListSum(username, pager);
-		pager.makeBlock(totalCount);
+    public List<CommissionDTO> ownerUnpaidCommissionList(Long username) throws Exception {
+        return settleMapper.ownerUnpaidCommissionList(username);
+    }
 
-		return new PagedResponse<>(items, pager, totalCount, totalAmount);
-	}
+    public PagedResponse<ExpenseDTO> expenseList(Long username, String role, Pager pager, String sort) throws Exception {
+        pager.makeOffset();
+        List<ExpenseDTO> items = settleMapper.expenseList(username, role, pager, sort);
+        long totalCount = settleMapper.expenseListCount(username, role, pager);
+        long totalAmount = settleMapper.expenseListSum(username, role, pager);
+        pager.makeBlock(totalCount);
 
-	public PagedResponse<ExpenseDTO> expenseList(Long username, String role, Pager pager, ExpenseDTO expenseDTO) throws Exception {
-		return expenseList(username, pager, null);
-	}
+        return new PagedResponse<>(items, pager, totalCount, totalAmount);
+    }
 
-	public PagedResponse<ExpenseDTO> expenseList(String username, String role, Pager pager, ExpenseDTO expenseDTO) throws Exception {
-		Long usernameLong = (username != null && !username.isBlank()) ? Long.parseLong(username) : null;
-		return expenseList(usernameLong, role, pager, expenseDTO);
-	}
+    public List<ExpenseDTO> expenseListAll(Long username, String role, Pager pager) throws Exception {
+        return settleMapper.expenseListAll(username, role, pager);
+    }
 
-	public List<ExpenseDTO> expenseListAll(Long username, Pager pager) throws Exception {
-		return settleMapper.expenseListAll(username, pager);
-	}
+    @org.springframework.transaction.annotation.Transactional
+    public int expenseAdd(ExpenseDTO expenseDTO) throws Exception {
+        return settleMapper.expenseAdd(expenseDTO);
+    }
 
-	@Transactional
-	public int expenseAdd(ExpenseDTO expenseDTO) throws Exception {
-		int result = settleMapper.expenseAdd(expenseDTO);
-		if (result > 0 && expenseDTO.getDataId() != null) {
-			settleMapper.updateSettlementStatusContract(expenseDTO.getDataId(), expenseDTO.getExpenseId());
-		}
-		return result;
-	}
+    @org.springframework.transaction.annotation.Transactional
+    public int expenseAddForOwner(Long username, ExpenseDTO expenseDTO) throws Exception {
+        Long ownerGymId = settleMapper.getOwnerGymId(username);
+        if (ownerGymId == null) {
+            throw new IllegalArgumentException("소속 사업장을 확인할 수 없습니다.");
+        }
+        expenseDTO.setGymId(ownerGymId);
 
-	public int expenseDelete(Long expenseId) throws Exception {
-		int linkedCount = settleMapper.checkExpenseLinkedToSettlement(expenseId);
-		if (linkedCount > 0) {
-			return -2;
-		}
-		return settleMapper.expenseDelete(expenseId);
-	}
+        if (expenseDTO.getSettlementId() != null) {
+            CommissionDTO settlement = settleMapper.getOwnerUnpaidCommission(username, expenseDTO.getSettlementId());
+            if (settlement == null) {
+                throw new IllegalArgumentException("본인 사업장의 미지급 커미션이 아니거나 이미 지급된 정산입니다.");
+            }
 
-	@Transactional
-	public int generateMonthlyCommissions(LocalDate settleMonth) throws Exception {
-		LocalDate startDate = settleMonth.withDayOfMonth(1);
-		LocalDate endDate = settleMonth.with(TemporalAdjusters.lastDayOfMonth());
+            expenseDTO.setDataId(null);
+            expenseDTO.setExpenseName(String.format("[%s] 플랫폼 커미션", settlement.getSettleMonth()));
+            
+            long calculatedPrice = (long)(settlement.getCommission() * (1 + settlement.getCommissionRate()));
+            expenseDTO.setExpensePrice(calculatedPrice);
+            expenseDTO.setExpenseRate(settlement.getCommissionRate());
+        } else if (expenseDTO.getDataId() != null) {
+            settleMapper.lockExpenseContract(expenseDTO.getDataId());
+            if (settleMapper.checkOwnerExpenseContract(username, expenseDTO.getDataId()) != 1) {
+                throw new IllegalArgumentException("본인이 지급할 수 있는 미지급 임금 계약이 아닙니다.");
+            }
+        }
 
-		List<CommissionDTO> calculatedList = settleMapper.calculateMonthlyGymSales(startDate, endDate);
+        if (expenseDTO.getExpenseDate() == null
+                || expenseDTO.getExpenseName() == null
+                || expenseDTO.getExpenseName().isBlank()
+                || expenseDTO.getExpensePrice() == null
+                || expenseDTO.getExpensePrice() <= 0) {
+            throw new IllegalArgumentException("지출 항목명, 결제일, 금액을 올바르게 입력해 주세요.");
+        }
 
-		int insertCount = 0;
-		for (CommissionDTO item : calculatedList) {
-			int count = settleMapper.checkCommissionExists(item.getGymId(), startDate);
-			if (count == 0) {
-				item.setSettleMonth(startDate);
-				item.setStatus("미지급");
-				int result = settleMapper.insertCommission(item);
-				if (result > 0) {
-					insertCount++;
+        int result = settleMapper.expenseAdd(expenseDTO);
+        if (result <= 0) {
+            throw new IllegalStateException("지출 등록에 실패했습니다.");
+        }
 
-					Long receiver = resolveOwnerReceiver(item.getGymId());
-					if (receiver != null) {
-						String message = String.format("%d년 %d월 정산이 생성되었습니다. (수수료 %,d원)",
-								startDate.getYear(), startDate.getMonthValue(), item.getCommission());
-						sendAlarmSafely(receiver, message, "/fitb/Settlepage", "SETTLE_BATCH");
-					}
-				}
-			}
-		}
-		return insertCount;
-	}
+        if (expenseDTO.getSettlementId() != null
+                && settleMapper.markSettlementPaid(
+                        expenseDTO.getSettlementId(), expenseDTO.getExpenseId(), expenseDTO.getExpenseDate()) != 1) {
+            throw new IllegalArgumentException("커미션이 이미 지급되었거나 상태가 변경되었습니다.");
+        }
+        return result;
+    }
 
-	@Transactional
-	public int generateMonthlyCommission(String settleMonth) throws Exception {
-		if (settleMonth == null || settleMonth.trim().isEmpty()) {
-			throw new IllegalArgumentException("settleMonth is required");
-		}
+    @org.springframework.transaction.annotation.Transactional
+    public int expenseDelete(Long username, Long expenseId) throws Exception {
+        int resetCount = settleMapper.resetSettlementForExpense(username, expenseId);
+        int deleteCount = settleMapper.expenseDelete(username, expenseId);
+        if (resetCount > 0 && deleteCount <= 0) {
+            throw new IllegalStateException("커미션 정산 복구 중 지출 삭제에 실패했습니다.");
+        }
+        return deleteCount;
+    }
 
-		LocalDate parsedDate;
-		try {
-			if (settleMonth.length() <= 7) {
-				parsedDate = YearMonth.parse(settleMonth).atDay(1);
-			} else {
-				parsedDate = LocalDate.parse(settleMonth);
-			}
-		} catch (Exception e) {
-			throw new IllegalArgumentException("올바르지 않은 날짜 형식입니다.");
-		}
+    @org.springframework.transaction.annotation.Transactional
+    public int generateMonthlyCommissions(java.time.LocalDate settleMonth) throws Exception {
+        java.time.LocalDate startDate = settleMonth.withDayOfMonth(1);
+        java.time.LocalDate currentMonth = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).withDayOfMonth(1);
+        if (!startDate.isBefore(currentMonth)) {
+            throw new IllegalArgumentException("완료된 이전 달의 매출만 커미션으로 집계할 수 있습니다.");
+        }
+        java.time.LocalDate endDate = settleMonth.with(java.time.temporal.TemporalAdjusters.lastDayOfMonth());
 
-		return generateMonthlyCommissions(parsedDate);
-	}
+        List<CommissionDTO> calculatedList = settleMapper.calculateMonthlyGymSales(startDate, endDate);
 
-	public PagedResponse<ContractDTO> unpaidExpenseContractList(Long username, Pager pager) throws Exception {
-		pager.makeOffset();
-		List<ContractDTO> items = settleMapper.unpaidExpenseContractList(username, pager);
+        int insertCount = 0;
+        for (CommissionDTO item : calculatedList) {
+            settleMapper.lockCommissionGeneration(item.getGymId());
+            int count = settleMapper.checkCommissionExists(item.getGymId(), startDate);
+            if (count == 0) {
+                item.setSettleMonth(startDate);
+                item.setStatus("미지급");
+                int result = settleMapper.insertCommission(item);
+                if (result > 0) {
+                    insertCount++;
 
-		long totalCount = settleMapper.unpaidExpenseContract(username, pager);
-		pager.makeBlock(totalCount);
+                    Long receiver = resolveOwnerReceiver(item.getGymId());
+                    if (receiver != null) {
+                        String message = String.format("%d년 %d월 정산이 생성되었습니다. (수수료 %,d원)",
+                                startDate.getYear(), startDate.getMonthValue(), item.getCommission());
+                        sendAlarmSafely(receiver, message, "/fitb/Settlepage", "SETTLE_BATCH");
+                    }
+                }
+            }
+        }
+        return insertCount;
+    }
 
-		return new PagedResponse<>(items, pager, totalCount, 0L);
-	}
+    public PagedResponse<ContractDTO> unpaidExpenseContractList(Long username, Pager pager) throws Exception {
+        pager.makeOffset();
+        List<ContractDTO> items = settleMapper.unpaidExpenseContractList(username, pager);
+        long totalCount = settleMapper.unpaidExpenseContractListCount(username, pager);
+        pager.makeBlock(totalCount);
 
-	public int checkNewlyExpenseContracts() throws Exception {
-		List<ContractDTO> newlySigned = settleMapper.newlySignedExpenseExpnesContracts();
+        return new PagedResponse<>(items, pager, totalCount, 0L);
+    }
 
-		int sentCount = 0;
-		for (ContractDTO contract : newlySigned) {
-			Long receiver = resolveOwnerReceiver(contract.getGymId());
-			if (receiver == null) {
-				continue;
-			}
-			String message = String.format("신규 지출 정산 대기 계약서가 발생했습니다: %s", contract.getReceiverName());
-			sendAlarmSafely(receiver, message, "/fitb/Settlepage", "CONTRACT_WAIT");
-			sentCount++;
-		}
-		return sentCount;
-	}
+    public int checkNewlySignedExpenseContracts() throws Exception {
+        List<ContractDTO> newlySigned = settleMapper.newlySignedExpenseContracts();
+
+        int sentCount = 0;
+        for (ContractDTO contract : newlySigned) {
+            Long receiver = resolveOwnerReceiver(contract.getGymId());
+            if (receiver == null) {
+                continue;
+            }
+            String message = String.format("신규 지출 정산 대기 계약서가 발생했습니다: %s", contract.getReceiverName());
+            sendAlarmSafely(receiver, message, "/fitb/Settlepage", "CONTRACT_WAIT");
+            sentCount++;
+        }
+        return sentCount;
+    }
 }

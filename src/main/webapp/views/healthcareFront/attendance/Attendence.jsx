@@ -6,6 +6,8 @@ import './Attendance.css';
 function Attendance() {
   const formRef = useRef(null);
   const timerRef = useRef(null);
+  const idleTimerRef = useRef(null);
+
   const [mode, setMode] = useState(null); // null=선택화면, 'gym'=헬스장, 'pt'=PT
   const [result, setResult] = useState(null); // 출석 완료 응답
   const [loading, setLoading] = useState(false);
@@ -18,37 +20,70 @@ function Attendance() {
     }
   };
 
+  const clearIdleTimer = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  };
+
   // 초기 선택 화면으로 리셋
   const handleReset = () => {
     clearAutoResetTimer();
+    clearIdleTimer();
     setMode(null);
     setResult(null);
   };
 
-  // 언마운트 시 타이머 해제
+  // 폼 입력 시 일정 시간 미입력 시 자동 리셋 (30초)
+  const resetIdleTimer = () => {
+    clearIdleTimer();
+    if (mode && !result) {
+      idleTimerRef.current = setTimeout(() => {
+        handleReset();
+      }, 30000); // 30초간 입력 없을 시 메인으로 복귀
+    }
+  };
+
+  // 언마운트 시 모든 타이머 해제
   useEffect(() => {
-    return () => clearAutoResetTimer();
+    return () => {
+      clearAutoResetTimer();
+      clearIdleTimer();
+    };
   }, []);
+
+  // 모드 변경 시 타임아웃 타이머 셋업
+  useEffect(() => {
+    if (mode && !result) {
+      resetIdleTimer();
+    }
+  }, [mode, result]);
 
   // 출석 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
 
+    clearIdleTimer();
+
     const formData = new FormData(formRef.current);
     const data = Object.fromEntries(formData.entries());
 
-    // 숫자가 아닌 문자(하이픈 등) 제거 후 정수 변환
+    // 숫자가 아닌 문자(하이픈 등) 제거
     const cleanUsername = String(data.username || '').replace(/\D/g, '');
-    const submitData = {
-      username: parseInt(cleanUsername, 10),
-      password: data.password,
-    };
 
-    if (isNaN(submitData.username) || cleanUsername.length < 8) {
-      alert('올바른 전화번호 형식을 입력해 주세요.');
+    // 010으로 시작하는 10~11자리 숫자 검증
+    if (!/^\d{10,11}$/.test(cleanUsername)) {
+      alert('올바른 전화번호 형식을 입력해 주세요. (예: 01012345678)');
+      resetIdleTimer();
       return;
     }
+
+    const submitData = {
+      username: cleanUsername, // 문자열 형태로 넘겨 010... 앞자리 0 보존
+      password: data.password,
+    };
 
     setLoading(true);
     try {
@@ -61,23 +96,26 @@ function Attendance() {
       if (response.ok) {
         const row = await response.json();
         setResult(row);
+        
         // 완료 화면 7초 후 자동 리셋 타이머
         clearAutoResetTimer();
         timerRef.current = setTimeout(handleReset, 7000);
       } else {
         const errorText = await response.text();
-        alert(errorText || '출석 처리에 실패했습니다.');
+        alert(errorText || '출석 처리에 실패했습니다. 아이디 및 비밀번호를 확인해 주세요.');
+        resetIdleTimer();
       }
     } catch (error) {
       console.error('출석 처리 오류:', error);
       alert('서버와의 통신 중 오류가 발생했습니다.');
+      resetIdleTimer();
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="attendance-kiosk">
+    <main className="attendance-kiosk" onClick={resetIdleTimer} onKeyDown={resetIdleTimer}>
       <header className="attendance-kiosk__header">
         <h1 className="attendance-kiosk__title">
           <NavIcon id="dumbbell" size={24} className="ui-icon" /> 출석 체크
@@ -98,7 +136,7 @@ function Attendance() {
               담당 트레이너 확인 후 잔여 횟수가 차감됩니다. (현재 잔여 {result.remainingCount ?? 0}회)
             </p>
           ) : (
-            <p className="attendance-kiosk__result-copy">오늘도 좋은 운동 되세요!</p>
+            <p className="attendance-kiosk__result-copy">오늘도 즐거운 운동 되세요!</p>
           )}
           <button type="button" onClick={handleReset} className="attendance-kiosk__reset">
             확인

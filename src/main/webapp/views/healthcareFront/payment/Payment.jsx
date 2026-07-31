@@ -3,15 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import './Payment.css';
 
 // 계약 유형 라벨 (백엔드 h_contract_data.contract 코드 기준)
-// 결제 대상은 3·4·5뿐 (PayMapper.findPayableContract의 contract IN (3,4,5)와 동일 범위)
 const TYPE_LABEL = { 3: '이용권', 4: 'PT', 5: 'PT 체험' };
 
-// 횟수(quantity)를 갖는 PT형 계약 - 이용권(3)은 횟수 개념이 없다
+// 횟수(quantity)를 갖는 PT형 계약
 const PT_CONTRACTS = [4, 5];
 
 const money = (v) => (v == null ? '-' : Number(v).toLocaleString('ko-KR'));
 
-// 계약 체결 후 결제 페이지 (계약 요약 + 적용 가능 쿠폰 선택 + 결제 확정)
 function Payment() {
   const { dataId } = useParams();
   const navigate = useNavigate();
@@ -35,9 +33,14 @@ function Payment() {
       if (response.ok) {
         const data = await response.json();
         setDetail(data);
-        fetchCoupons(data.receiverId); // 결제 당사자(회원)의 쿠폰함을 조회
+        if (data.receiverId) {
+          fetchCoupons(data.receiverId);
+        }
+      } else if (response.status === 401) {
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+        navigate('/login');
       } else {
-        setMessage(`계약 조회 실패(${response.status}): ${await response.text()}`);
+        setMessage(`계약 조회 실패 (${response.status}): ${await response.text()}`);
       }
     } catch (error) {
       console.error('계약 조회 오류:', error);
@@ -45,7 +48,6 @@ function Payment() {
     }
   };
 
-  // 사장님(로그인 계정)이 결제 대상 회원의 쿠폰함을 조회
   const fetchCoupons = async (memberUsername) => {
     const token = localStorage.getItem('accessToken');
     if (!token || !memberUsername) return;
@@ -54,7 +56,8 @@ function Payment() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
-        setCoupons(await response.json());
+        const data = await response.json();
+        setCoupons(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('쿠폰 조회 오류:', error);
@@ -66,16 +69,14 @@ function Payment() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataId]);
 
-  // 쿠폰 카테고리별 적용 규칙 (백엔드 PayService.validateCouponForContract와 동일, 새 카테고리는 항목 추가로 확장)
-  // 헬스: 이용권 계약(3) / PT: PT 계약(4) / 체험권: PT 체험 계약(5), 기존 PT(4)도 하위 호환 허용
-  // 개월수/횟수 일치 제약은 정책 결정으로 제거됨 — 카테고리만 맞으면 목록에 노출
+  // 쿠폰 카테고리별 적용 규칙
   const COUPON_CATEGORY_RULES = {
     '헬스': (c, d) => d.contract === 3,
     'PT': (c, d) => d.contract === 4,
     '체험권': (c, d) => PT_CONTRACTS.includes(d.contract),
   };
 
-  // 이 계약에 실제로 적용 가능한 쿠폰만 추리기 (백엔드 PayService.checkout 검증 규칙과 동일)
+  // 이 계약에 적용 가능한 쿠폰 필터링
   const applicableCoupons = (() => {
     if (!detail) return [];
     const today = new Date();
@@ -90,13 +91,13 @@ function Payment() {
     });
   })();
 
-  const selectedCoupon = applicableCoupons.find((c) => c.couponId === selectedCouponId) || null;
-  // 할인율 적용액이 쿠폰의 최대 할인 금액(maxAmount)을 넘으면 최대 금액까지만 할인 (백엔드 PayService.checkout과 동일)
+  const selectedCoupon = applicableCoupons.find((c) => String(c.couponId) === String(selectedCouponId)) || null;
+  
+  // 할인 금액 계산 (최대 금액 Capping 적용 및 음수 방지)
   const rawDiscount = selectedCoupon ? Math.floor((detail?.amount || 0) * selectedCoupon.percent / 100) : 0;
   const isCapped = selectedCoupon?.maxAmount != null && rawDiscount > selectedCoupon.maxAmount;
   const discount = isCapped ? selectedCoupon.maxAmount : rawDiscount;
-  const finalPrice = (detail?.amount || 0) - discount;
-  // 체험권(100% 할인) 등으로 최종 0원이면 할부가 의미 없으므로 일시불 고정 (백엔드도 동일하게 강제)
+  const finalPrice = Math.max(0, (detail?.amount || 0) - discount);
   const effectiveInstallment = finalPrice === 0 ? 0 : installment;
 
   const handleCheckout = async () => {
@@ -114,13 +115,19 @@ function Payment() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ dataId: Number(dataId), couponId: selectedCouponId, installment: effectiveInstallment }),
+        body: JSON.stringify({
+          dataId: Number(dataId),
+          couponId: selectedCouponId ? Number(selectedCouponId) : null,
+          installment: effectiveInstallment,
+        }),
       });
+
       if (response.ok) {
-        alert('결제가 완료되었습니다.');
+        alert('결제가 정상적으로 완료되었습니다.');
         navigate(`/fitb/contract/${dataId}`);
       } else {
-        setMessage(`결제 실패: ${await response.text()}`);
+        const errText = await response.text();
+        setMessage(`결제 실패: ${errText}`);
       }
     } catch (error) {
       console.error('결제 오류:', error);
@@ -134,7 +141,7 @@ function Payment() {
     return (
       <div className="pay-state">
         <div className="pay-state-title">결제</div>
-        <p>{message || '불러오는 중...'}</p>
+        <p>{message || '계약 정보를 불러오는 중입니다...'}</p>
       </div>
     );
   }
@@ -212,7 +219,7 @@ function Payment() {
                       </span>
                       <span className="pay-coupon-meta">
                         {c.category === '체험권' ? '무료체험' : `${c.percent}% 할인`}
-                        {c.maxAmount != null ? ` · 최대 ${money(c.maxAmount)}원` : ''} · {c.fromName} 발송 · ~{c.date} 까지
+                        {c.maxAmount != null ? ` · 최대 ${money(c.maxAmount)}원` : ''} · {c.fromName || '지점'} 발송 · ~{c.date} 까지
                       </span>
                     </span>
                   </label>
@@ -272,7 +279,12 @@ function Payment() {
             <span className="pay-summary-total-value">{money(finalPrice)}원</span>
           </div>
 
-          <button type="button" className="pay-submit" onClick={handleCheckout} disabled={submitting}>
+          <button
+            type="button"
+            className="pay-submit"
+            onClick={handleCheckout}
+            disabled={submitting}
+          >
             {submitting ? '결제 처리 중...' : '결제하기'}
           </button>
 

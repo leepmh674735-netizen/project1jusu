@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchWithToken } from '../utils/fetchWithToken'; // 공통 fetch 래퍼 유틸리티
 import './Dashboard.css';
 
-// 위젯 키별 표시 이름 (백엔드 h_dashboard_widget.widget_key와 매핑)
+// 위젯 키별 표시 이름
 const WIDGET_LABEL = {
   gymCount: '계약 체육관 수',
   expiringSubscription: '다가오는 구독 만료',
@@ -153,7 +154,7 @@ function Dashboard() {
     }
   };
 
-  // 위젯 설정 + 활성 위젯 데이터 조회
+  // 위젯 설정 + 활성 위젯 데이터 조회 (fetchWithToken 연동)
   const loadDashboard = useCallback(async () => {
     if (!token) return;
 
@@ -162,10 +163,9 @@ function Dashboard() {
     abortControllerRef.current = controller;
 
     try {
-      const headers = { Authorization: `Bearer ${token}` };
       const [widgetRes, dataRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets`, { headers, signal: controller.signal }),
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/data`, { headers, signal: controller.signal }),
+        fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets`, { signal: controller.signal }),
+        fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/dashboard/data`, { signal: controller.signal }),
       ]);
 
       if (widgetRes.ok && dataRes.ok) {
@@ -188,13 +188,12 @@ function Dashboard() {
     return () => cancelPendingRequests();
   }, [loadDashboard]);
 
-  // 태스크 브리핑("오늘 처리할 일")
+  // AI 태스크 브리핑 조회 (fetchWithToken 연동)
   useEffect(() => {
     if (!token || !aiEligible) return;
 
     const controller = new AbortController();
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/ai/briefing`, {
-      headers: { Authorization: `Bearer ${token}` },
+    fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/ai/briefing`, {
       signal: controller.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
@@ -212,9 +211,8 @@ function Dashboard() {
 
   const handleToggle = async (widget) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets/toggle`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets/toggle`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ widgetKey: widget.widgetKey, isActive: !widget.isActive }),
       });
 
@@ -243,9 +241,8 @@ function Dashboard() {
     ];
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets/order`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/dashboard/widgets/order`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(reordered),
       });
 
@@ -269,23 +266,25 @@ function Dashboard() {
       case 'managedMemberCount':
         return (
           <div>
-            <p className="dash-kpi">{value.total}<span> 명(개)</span></p>
-            <p className="dash-sub">이번 달 신규 +{value.newThisMonth}</p>
+            <p className="dash-kpi">{value.total ?? 0}<span> 명(개)</span></p>
+            <p className="dash-sub">이번 달 신규 +{value.newThisMonth ?? 0}</p>
           </div>
         );
       case 'activeMemberCount':
         return (
           <div>
-            <p className="dash-kpi">{value.total}<span> 명</span></p>
-            <p className="dash-sub">이번 달 신규 +{value.newThisMonth}</p>
-            <p className="dash-sub">이용권 {value.membership} · PT {value.pt} · 체험 {value.trial}</p>
+            <p className="dash-kpi">{value.total ?? 0}<span> 명</span></p>
+            <p className="dash-sub">이번 달 신규 +{value.newThisMonth ?? 0}</p>
+            <p className="dash-sub">이용권 {value.membership ?? 0} · PT {value.pt ?? 0} · 체험 {value.trial ?? 0}</p>
           </div>
         );
       case 'couponUsage': {
-        const pct = value.total > 0 ? Math.round((value.used / value.total) * 100) : 0;
+        const total = value.total || 0;
+        const used = value.used || 0;
+        const pct = total > 0 ? Math.round((used / total) * 100) : 0;
         return (
           <div>
-            <p className="dash-kpi">{value.used}<span> / {value.total}건 사용</span></p>
+            <p className="dash-kpi">{used}<span> / {total}건 사용</span></p>
             <div className="dash-progress">
               <div className="dash-progress__fill" style={{ width: `${pct}%` }} />
             </div>
@@ -296,21 +295,21 @@ function Dashboard() {
       case 'expiringMemberCount':
         return (
           <div>
-            <p className="dash-kpi">{value.total}<span> 명</span></p>
+            <p className="dash-kpi">{value.total ?? 0}<span> 명</span></p>
             <p className="dash-sub">30일 내 만료 예정</p>
           </div>
         );
       case 'todayAttendance':
         return (
           <div>
-            <p className="dash-kpi">{value.total}<span> 명</span></p>
+            <p className="dash-kpi">{value.total ?? 0}<span> 명</span></p>
             <p className="dash-sub">오늘 출석 인원</p>
           </div>
         );
       case 'expiringSubscription':
         return (
           <ul className="dash-list">
-            {value.map((row, i) => (
+            {Array.isArray(value) && value.map((row, i) => (
               <li key={i}>
                 <span>{row.name}</span>
                 <span className={row.dday <= 7 ? 'dash-badge danger' : 'dash-badge'}>D-{row.dday}</span>
@@ -321,17 +320,18 @@ function Dashboard() {
       case 'monthlyRevenue':
       case 'monthlyExpense':
       case 'monthlySession': {
-        const max = Math.max(...value.map((row) => Number(row.total))) || 1;
+        const list = Array.isArray(value) ? value : [];
+        const max = Math.max(...list.map((row) => Number(row.total))) || 1;
         const tone = CHART_SERIES[widgetKey]?.tone ?? 'accent';
         return (
           <div className="dash-chart">
-            {value.map((row) => (
+            {list.map((row) => (
               <div key={row.month} className="dash-bar-col" title={`${row.month} · ${Number(row.total).toLocaleString()}`}>
                 <div
                   className={`dash-bar dash-bar--${tone}`}
                   style={{ height: `${Math.max(3, Math.round((Number(row.total) / max) * 100))}%` }}
                 />
-                <span className="dash-bar-month">{row.month.slice(5)}월</span>
+                <span className="dash-bar-month">{String(row.month).slice(5)}월</span>
               </div>
             ))}
           </div>
@@ -340,7 +340,7 @@ function Dashboard() {
       case 'lowSessionMembers':
         return (
           <ul className="dash-list">
-            {value.map((row, i) => (
+            {Array.isArray(value) && value.map((row, i) => (
               <li key={i}>
                 <span>{row.name}</span>
                 <span className={row.remain <= 3 ? 'dash-badge danger' : 'dash-badge'}>{row.remain}회 남음</span>
@@ -351,15 +351,16 @@ function Dashboard() {
       case 'gymNps':
         return (
           <div>
-            <p className="dash-kpi">{value.averageScore}<span> / 5점</span></p>
-            <p className="dash-sub">설문 {value.total}건 기준</p>
+            <p className="dash-kpi">{value.averageScore ?? 0}<span> / 5점</span></p>
+            <p className="dash-sub">설문 {value.total ?? 0}건 기준</p>
           </div>
         );
       case 'churnTrend': {
-        const max = Math.max(...value.map((row) => Number(row.riskMembers))) || 1;
+        const list = Array.isArray(value) ? value : [];
+        const max = Math.max(...list.map((row) => Number(row.riskMembers))) || 1;
         return (
           <div className="dash-chart">
-            {value.map((row) => (
+            {list.map((row) => (
               <div
                 key={row.period}
                 className="dash-bar-col"
@@ -369,7 +370,7 @@ function Dashboard() {
                   className="dash-bar dash-bar--blue"
                   style={{ height: `${Math.max(3, Math.round((Number(row.riskMembers) / max) * 100))}%` }}
                 />
-                <span className="dash-bar-month">{row.period.slice(5)}월</span>
+                <span className="dash-bar-month">{String(row.period).slice(5)}월</span>
               </div>
             ))}
           </div>
@@ -379,8 +380,8 @@ function Dashboard() {
       case 'gymChurn':
         return (
           <div>
-            <p className="dash-kpi">{value.highRiskCount}<span> 명 고위험</span></p>
-            <p className="dash-sub">평균 이탈률 {(Number(value.averageChurnRate) * 100).toFixed(1)}% · {value.total}명 분석</p>
+            <p className="dash-kpi">{value.highRiskCount ?? 0}<span> 명 고위험</span></p>
+            <p className="dash-sub">평균 이탈률 {(Number(value.averageChurnRate || 0) * 100).toFixed(1)}% · {value.total ?? 0}명 분석</p>
           </div>
         );
       default:

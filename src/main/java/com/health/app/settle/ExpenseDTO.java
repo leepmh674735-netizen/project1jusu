@@ -15,6 +15,7 @@ public class ExpenseDTO {
 	private Long username;
 	private Long gymId;
 	private Long dataId;
+	private Long settlementId;
 	private String expenseName;
 	private LocalDate expenseDate;
 	private Long expensePrice;

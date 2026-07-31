@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { fetchWithToken } from '../utils/fetchWithToken'; // 공통 fetch 래퍼 유틸리티
 
-// PT형 계약 유형 라벨 (백엔드 h_contract_data.contract 코드 기준: 4=PT, 5=PT 체험)
+// PT형 계약 유형 라벨
 const PT_TYPE_LABEL = { 4: 'PT', 5: 'PT 체험' };
 
-// 날짜 차이 계산 안전 헬퍼 (타임존 오류 방지)
+// 날짜 차이 계산 안전 헬퍼
 const getDaysBetween = (startDateStr, endDateStr) => {
   if (!startDateStr || !endDateStr) return 0;
   const start = new Date(startDateStr.substring(0, 10));
@@ -36,16 +37,15 @@ function AttendanceConfirm() {
     }
   };
 
-  // 공통 GET 헬퍼
+  // 공통 GET 헬퍼 (fetchWithToken 적용)
   const fetchJson = useCallback(async (path, setter, label, signal) => {
-    if (!token) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}${path}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}${path}`, {
         signal,
       });
       if (response.ok) {
-        setter(await response.json());
+        const data = await response.json();
+        setter(Array.isArray(data) ? data : []);
       } else {
         console.error(`${label} 로드 실패:`, await response.text());
       }
@@ -54,7 +54,7 @@ function AttendanceConfirm() {
         console.error(`${label} 조회 실패:`, error);
       }
     }
-  }, [token]);
+  }, []);
 
   const fetchAll = useCallback(() => {
     cancelPendingRequest();
@@ -84,9 +84,8 @@ function AttendanceConfirm() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/confirm/${row.id}`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/confirm/${row.id}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
@@ -117,11 +116,10 @@ function AttendanceConfirm() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/schedule`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/schedule`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          username: parseInt(data.username, 10),
+          username: data.username,
           scheduleAt: `${selectedDate}T${data.time}:00`,
           memo: data.memo || null,
         }),
@@ -148,9 +146,8 @@ function AttendanceConfirm() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/schedule/${schedule.scheduleId}`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/attendance/schedule/${schedule.scheduleId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         fetchJson('/fitb/attendance/schedule', setScheduleList, '일정 목록');

@@ -4,31 +4,33 @@ import { useState, useEffect } from 'react';
 function B2bPromotion() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   
-  // 상태 관리 (쿠폰 종류 목록, 입력 폼 데이터 등)
+  // 상태 관리
   const [couponTypes, setCouponTypes] = useState([]);
-  const [members, setMembers] = useState([]); // ◀ 지점 회원 목록 상태 추가
-  const [sentCoupons, setSentCoupons] = useState([]); // ◀ 발송 쿠폰 전체 상태 추가
+  const [members, setMembers] = useState([]);
+  const [sentCoupons, setSentCoupons] = useState([]);
+  
+  // 쿠폰 생성 폼 상태
   const [category, setCategory] = useState('헬스');
   const [percent, setPercent] = useState('');
   const [couponName, setCouponName] = useState('');
-  const [maxAmount, setMaxAmount] = useState(''); // ◀ couponDate를 maxAmount(최대적용금액) 상태로 변경
+  const [maxAmount, setMaxAmount] = useState('');
   const [couponCount, setCouponCount] = useState('');
 
   // 발송 폼용 상태 관리
   const [selectedType, setSelectedType] = useState(null);
-  const [selectedMembers, setSelectedMembers] = useState([]); // ◀ 복수 선택된 회원 목록 (배열)
+  const [selectedMembers, setSelectedMembers] = useState([]); // username 기준 선택 배열
   const [expiryDate, setExpiryDate] = useState('');
 
-  // 개별 회원 체크박스 클릭 토글 핸들러
+  // 개별 회원 체크박스 토글
   const handleCheckMember = (username) => {
-    if (selectedMembers.includes(username)) {
-      setSelectedMembers(selectedMembers.filter(id => id !== username));
-    } else {
-      setSelectedMembers([...selectedMembers, username]);
-    }
+    setSelectedMembers(prev => 
+      prev.includes(username) 
+        ? prev.filter(id => id !== username)
+        : [...prev, username]
+    );
   };
 
-  // 전체 선택 / 해제 토글 핸들러
+  // 전체 선택 / 해제 토글
   const handleCheckAll = (checked) => {
     if (checked) {
       setSelectedMembers(members.map(m => m.username));
@@ -37,16 +39,21 @@ function B2bPromotion() {
     }
   };
 
-  // 이탈위험(가격불만) 회원만 선택 — 최신 예측 기준 위험군 중 '가격불만' 이탈요인 보유자
+  // 이탈위험(가격불만) 회원 자동 선택
   const handleSelectChurnRisk = async () => {
     if (!user.gymId) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/result/members/byFactor`
-        + `?gymId=${user.gymId}&statKey=${encodeURIComponent('가격불만')}`);
-      if (!res.ok) { alert('이탈위험 회원 조회에 실패했습니다.'); return; }
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/result/members/byFactor?gymId=${user.gymId}&statKey=${encodeURIComponent('가격불만')}`
+      );
+      if (!res.ok) {
+        alert('이탈위험 회원 조회에 실패했습니다.');
+        return;
+      }
       const data = await res.json();
       const riskSet = new Set((Array.isArray(data) ? data : []).map(d => String(d.username)));
       const picked = members.filter(m => riskSet.has(String(m.username))).map(m => m.username);
+      
       setSelectedMembers(picked);
       if (picked.length === 0) alert('가격불만 이탈위험 회원이 없습니다.');
     } catch (err) {
@@ -55,7 +62,7 @@ function B2bPromotion() {
     }
   };
 
-  // 지점의 등록된 쿠폰 종류 목록 백엔드 로드
+  // 쿠폰 종류 목록 데이터 로드
   const fetchCouponTypes = async () => {
     const token = localStorage.getItem('accessToken');
     if (!token || !user.gymId) return;
@@ -73,7 +80,7 @@ function B2bPromotion() {
     }
   };
 
-  // 소속 지점의 일반 회원 목록 백엔드 로드
+  // 지점 일반 회원 목록 로드
   const fetchMembers = async () => {
     const token = localStorage.getItem('accessToken');
     if (!token || !user.gymId) return;
@@ -91,7 +98,7 @@ function B2bPromotion() {
     }
   };
 
-  // 사장님이 발송한 쿠폰 상태 현황 목록 백엔드 로드
+  // 발송 쿠폰 상태 현황 로드
   const fetchSentCoupons = async () => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
@@ -111,11 +118,23 @@ function B2bPromotion() {
 
   useEffect(() => {
     fetchCouponTypes();
-    fetchMembers(); // ◀ 회원 목록 로드 메서드 기동
-    fetchSentCoupons(); // ◀ 발송 쿠폰 상태 목록 로드 기동
+    fetchMembers();
+    fetchSentCoupons();
   }, []);
 
-  // 사장님의 새로운 쿠폰 종류 생성 처리 핸들러
+  // 카테고리 전환 처리
+  const handleCategoryChange = (val) => {
+    setCategory(val);
+    setMaxAmount('');
+    setCouponCount('');
+    if (val === '체험권') {
+      setPercent('100');
+    } else {
+      setPercent('');
+    }
+  };
+
+  // 신규 쿠폰 종류 생성 처리
   const handleCreateType = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('accessToken');
@@ -126,8 +145,8 @@ function B2bPromotion() {
       percent: Number(percent),
       couponName,
       gymId: user.gymId,
-      maxAmount: category !== '체험권' ? Number(maxAmount) : null, // ◀ couponDate 대신 maxAmount 기입
-      couponCount: category === '체험권' ? Number(couponCount) : null // ◀ 오직 체험권일 때만 횟수 지정
+      maxAmount: category !== '체험권' && maxAmount ? Number(maxAmount) : null,
+      couponCount: category === '체험권' && couponCount ? Number(couponCount) : null
     };
 
     try {
@@ -144,9 +163,9 @@ function B2bPromotion() {
         alert('할인 쿠폰 종류가 정상 등록되었습니다.');
         setCouponName('');
         setPercent('');
-        setMaxAmount(''); // ◀ 입력 초기화
+        setMaxAmount('');
         setCouponCount('');
-        fetchCouponTypes(); // ◀ 추가: 쿠폰 종류 목록 실시간 갱신 트리거
+        fetchCouponTypes();
       } else {
         alert('등록에 실패했습니다.');
       }
@@ -155,7 +174,7 @@ function B2bPromotion() {
     }
   };
 
-  // 선택된 쿠폰 종류를 특정 회원(들)에게 최종 발송하는 핸들러 (다중 발송 지원)
+  // 개별 회원 발송 핸들러
   const handleSendCoupon = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('accessToken');
@@ -170,64 +189,63 @@ function B2bPromotion() {
       return;
     }
 
-    // 선택된 전원에게 비동기 발송 Promise 배열 생성
-    const sendPromises = selectedMembers.map(async (memberId) => {
+    const sendPromises = selectedMembers.map(async (username) => {
+      const memberObj = members.find(m => m.username === username);
+      // 백엔드 toId가 숫자 PK(id/memberNum)를 기대하는 경우 memberObj.id / memberObj.memberNum을 넘겨주어야 합니다.
+      const targetId = memberObj?.id || memberObj?.memberNum || username;
+
       const requestBody = {
-        toId: Number(memberId),
+        toId: targetId,
         couponNum: selectedType.couponNum,
         couponName: selectedType.couponName,
         date: expiryDate
       };
 
-      return fetch(`${import.meta.env.VITE_BACKEND_URL}/coupon/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
+      return {
+        username,
+        name: memberObj ? memberObj.name : username,
+        res: await fetch(`${import.meta.env.VITE_BACKEND_URL}/coupon/send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(requestBody)
+        })
+      };
     });
 
     try {
-      const responses = await Promise.all(sendPromises);
-      
-      // 개별 실패 결과 파싱 및 수집
+      const results = await Promise.all(sendPromises);
       const failedResults = [];
-      for (let i = 0; i < responses.length; i++) {
-        const res = responses[i];
-        if (!res.ok) {
-          const username = selectedMembers[i];
-          const memberObj = members.find(m => m.username === username);
-          const name = memberObj ? memberObj.name : username;
-          const errText = await res.text();
-          failedResults.push(`${name}님: ${errText}`);
+
+      for (const item of results) {
+        if (!item.res.ok) {
+          const errText = await item.res.text();
+          failedResults.push(`${item.name}님: ${errText}`);
         }
       }
 
       if (failedResults.length === 0) {
-        alert(`선택된 회원 ${selectedMembers.length}명에게 쿠폰이 정상적으로 일괄 발송되었습니다.`);
-        setSelectedMembers([]); // 복수 선택 리셋
-        setExpiryDate('');
-        setSelectedType(null); // 모달 닫기
-        fetchCouponTypes(); // 발송 수(sendCount) 업데이트를 위해 목록 갱신
-        fetchSentCoupons();  // 통계 카운트 실시간 동기화
+        alert(`선택된 회원 ${selectedMembers.length}명에게 쿠폰이 정상적으로 발송되었습니다.`);
       } else {
-        // 실패 건수가 있는 경우 일괄 실패 명세 경고 알림
-        alert(`일부 회원에게 쿠폰 발송을 실패했습니다.\n\n[실패 내역]\n${failedResults.join('\n')}`);
-        setSelectedMembers([]); // 선택 배열 비우기
-        setExpiryDate('');
-        setSelectedType(null); // 모달 닫기
-        fetchCouponTypes();
-        fetchSentCoupons();
+        alert(`일부 회원 쿠폰 발송 실패:\n\n${failedResults.join('\n')}`);
       }
+
+      // 상태 초기화 및 실시간 동기화
+      setSelectedMembers([]);
+      setExpiryDate('');
+      setSelectedType(null);
+      fetchCouponTypes();
+      fetchSentCoupons();
+
     } catch (err) {
-      console.error('쿠폰 일괄 발송 중 오류:', err);
-      alert('통신 오류로 인해 일괄 쿠폰 발송에 실패했습니다.');
+      console.error('쿠폰 발송 중 오류:', err);
+      alert('통신 오류로 인해 쿠폰 발송에 실패했습니다.');
     }
   };
 
-  // 발송된 전체 쿠폰 통계 파생 계산 (Derived State)
+  // 통계 현황 파생 계산
   const totalCount = sentCoupons.length;
   const unuseCount = sentCoupons.filter(c => c.status === '미사용').length;
   const usedCount = sentCoupons.filter(c => c.status === '사용완료').length;
@@ -236,35 +254,26 @@ function B2bPromotion() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', textAlign: 'left' }}>
       
-      {/* 0. 쿠폰 발송 및 사용 상태 집계 카드 현황판 */}
+      {/* 0. 쿠폰 발송 통계 카드 */}
       <div style={{ padding: '20px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <h4 style={{ margin: '0 0 15px 0', color: '#111827' }}>📊 쿠폰 발행 및 사용 통계 현황</h4>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-          
-          {/* 총 발행 수 */}
           <div style={{ padding: '12px', border: '1px solid #f3f4f6', borderRadius: '6px', backgroundColor: '#f9fafb', textAlign: 'center' }}>
             <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '3px' }}>총 발행 수</div>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937' }}>{totalCount}건</div>
           </div>
-
-          {/* 미사용 수 */}
           <div style={{ padding: '12px', border: '1px solid #dbeafe', borderRadius: '6px', backgroundColor: '#eff6ff', textAlign: 'center' }}>
             <div style={{ fontSize: '11px', color: '#2563eb', marginBottom: '3px' }}>미사용 (사용대기)</div>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1e40af' }}>{unuseCount}건</div>
           </div>
-
-          {/* 사용 완료 수 */}
           <div style={{ padding: '12px', border: '1px solid #d1fae5', borderRadius: '6px', backgroundColor: '#ecfdf5', textAlign: 'center' }}>
             <div style={{ fontSize: '11px', color: '#10b981', marginBottom: '3px' }}>사용 완료</div>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#065f46' }}>{usedCount}건</div>
           </div>
-
-          {/* 유효기간 만료 수 */}
           <div style={{ padding: '12px', border: '1px solid #fee2e2', borderRadius: '6px', backgroundColor: '#fef2f2', textAlign: 'center' }}>
             <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '3px' }}>기간 만료</div>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#991b1b' }}>{expiredCount}건</div>
           </div>
-
         </div>
       </div>
 
@@ -287,17 +296,7 @@ function B2bPromotion() {
             <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#333' }}>카테고리</label>
             <select 
               value={category} 
-              onChange={(e) => { 
-                const val = e.target.value;
-                setCategory(val); 
-                setMaxAmount(''); 
-                setCouponCount(''); 
-                if (val === '체험권') {
-                  setPercent('100'); // ◀ 체험권일 때 100% 자동 기입
-                } else {
-                  setPercent('');    // ◀ 타 카테고리로 복귀 시 초기화
-                }
-              }}
+              onChange={(e) => handleCategoryChange(e.target.value)}
               style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', height: '35px', color: '#333', backgroundColor: '#fff' }}
             >
               <option value="헬스">헬스</option>
@@ -315,19 +314,18 @@ function B2bPromotion() {
               min="1" 
               max="100" 
               placeholder="10" 
-              readOnly={category === '체험권'} // ◀ 체험권일 시 읽기전용(수정불가) 적용
+              readOnly={category === '체험권'}
               style={{ 
                 padding: '8px', 
                 border: '1px solid #ccc', 
                 borderRadius: '4px', 
                 width: '80px',
-                backgroundColor: category === '체험권' ? '#f3f4f6' : '#fff', // ◀ 체험권일 시 회색 배경
+                backgroundColor: category === '체험권' ? '#f3f4f6' : '#fff',
                 color: category === '체험권' ? '#9ca3af' : '#333'
               }} 
             />
           </div>
 
-          {/* 헬스, PT인 경우에만 최대 할인 한도금액(maxAmount)을 기입하도록 노출 */}
           {category !== '체험권' && (
             <div>
               <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#333' }}>최대 할인 금액 (원)</label>
@@ -342,7 +340,6 @@ function B2bPromotion() {
             </div>
           )}
 
-          {/* 오직 PT체험권 계열인 경우에만 할인 횟수를 입력하도록 노출 */}
           {category === '체험권' && (
             <div>
               <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#333' }}>할인 적용 횟수 (PT)</label>
@@ -363,7 +360,7 @@ function B2bPromotion() {
         </form>
       </div>
 
-      {/* 2. 등록된 쿠폰 종류 목록 및 발송 */}
+      {/* 2. 등록된 쿠폰 종류 목록 */}
       <div>
         <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>📋 등록된 쿠폰 목록 및 발송 현황</h4>
         {couponTypes.length === 0 ? (
@@ -392,7 +389,7 @@ function B2bPromotion() {
                     {type.category === '체험권' && `${type.couponCount}회 PT 무료체험`}
                   </td>
                   <td style={{ padding: '10px', textAlign: 'center', color: '#e11d48', fontWeight: 'bold' }}>
-                    {type.sendCount}회
+                    {type.sendCount || 0}회
                   </td>
                   <td style={{ padding: '10px', textAlign: 'center' }}>
                     <button 
@@ -409,13 +406,13 @@ function B2bPromotion() {
         )}
       </div>
 
-      {/* 3. 회원 발송 레이어 모달 */}
+      {/* 3. 회원 발송 모달 */}
       {selectedType && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
-          <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '350px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+          <div style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '380px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
             <h4 style={{ margin: '0 0 15px 0', color: '#333' }}>✉️ 쿠폰 발송 설정</h4>
             <p style={{ fontSize: '12px', color: '#666', marginBottom: '15px' }}>
               선택한 쿠폰: <strong style={{ color: '#333' }}>{selectedType.couponName} ({selectedType.percent}%)</strong>
@@ -426,46 +423,49 @@ function B2bPromotion() {
                   수신 회원 선택 ({selectedMembers.length}명 선택됨)
                 </label>
                 
-                {/* 전체 선택 체크박스 + 이탈위험(가격불만) 회원 선택 */}
                 <div style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="checkbox"
                     id="checkAll"
-                    checked={selectedMembers.length === members.length && members.length > 0}
+                    checked={members.length > 0 && selectedMembers.length === members.length}
                     onChange={(e) => handleCheckAll(e.target.checked)}
                     style={{ cursor: 'pointer' }}
                   />
-                  <label htmlFor="checkAll" style={{ marginLeft: '6px', fontSize: '12px', fontWeight: 'bold', color: '#111827', cursor: 'pointer' }}>
-                    전체 회원 선택
+                  <label htmlFor="checkAll" style={{ fontSize: '12px', fontWeight: 'bold', color: '#111827', cursor: 'pointer' }}>
+                    전체 선택
                   </label>
                   <button
                     type="button"
                     onClick={handleSelectChurnRisk}
-                    style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
+                    style={{ marginLeft: 'auto', padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
                              border: '1px solid #ef6c00', borderRadius: '4px', backgroundColor: '#fff', color: '#ef6c00' }}
                   >
-                    이탈위험 회원 선택 (가격불만)
+                    이탈위험 회원 (가격불만)
                   </button>
                 </div>
 
-                {/* 회원 목록 개별 체크박스 스크롤 리스트 */}
                 <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ccc', borderRadius: '4px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#fff' }}>
-                  {members.map((member) => (
-                    <div key={member.username} style={{ display: 'flex', alignItems: 'center' }}>
-                      <input 
-                        type="checkbox" 
-                        id={`member-${member.username}`}
-                        checked={selectedMembers.includes(member.username)}
-                        onChange={() => handleCheckMember(member.username)}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <label htmlFor={`member-${member.username}`} style={{ marginLeft: '8px', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
-                        {member.name} ({member.username})
-                      </label>
-                    </div>
-                  ))}
+                  {members.length === 0 ? (
+                    <span style={{ fontSize: '12px', color: '#999', textAlign: 'center' }}>지점 등록 회원이 없습니다.</span>
+                  ) : (
+                    members.map((member) => (
+                      <div key={member.username} style={{ display: 'flex', alignItems: 'center' }}>
+                        <input 
+                          type="checkbox" 
+                          id={`member-${member.username}`}
+                          checked={selectedMembers.includes(member.username)}
+                          onChange={() => handleCheckMember(member.username)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <label htmlFor={`member-${member.username}`} style={{ marginLeft: '8px', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
+                          {member.name} ({member.username})
+                        </label>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
+              
               <div>
                 <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#333' }}>사용 만료 기한</label>
                 <input 
@@ -473,7 +473,7 @@ function B2bPromotion() {
                   value={expiryDate} 
                   onChange={(e) => setExpiryDate(e.target.value)} 
                   required 
-                  style={{ width: '90%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', color: '#333' }}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', color: '#333', boxSizing: 'border-box' }}
                 />
               </div>
 

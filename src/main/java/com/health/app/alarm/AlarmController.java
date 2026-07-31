@@ -1,6 +1,7 @@
 package com.health.app.alarm;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,9 +40,28 @@ public class AlarmController {
         }
     }
 
+    @PostMapping("/ticket")
+    public ResponseEntity<?> issueSubscribeTicket(
+            @RequestHeader(value = "Authorization", required = false) String authorization) throws Exception {
+
+        Claims claims = extractClaims(authorization);
+        if (claims == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        Long receiver = Long.parseLong(claims.getSubject());
+        return ResponseEntity.ok(Map.of("ticket", alarmService.issueSubscribeTicket(receiver)));
+    }
+
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribe(@RequestParam("username") String username) throws Exception {
-        return alarmService.subscribe(username);
+    public ResponseEntity<SseEmitter> subscribe(
+            @RequestParam(value = "ticket", required = false) String ticket) throws Exception {
+
+        SseEmitter emitter = alarmService.subscribeByTicket(ticket);
+        if (emitter == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(emitter);
     }
 
     @GetMapping("/list")
@@ -53,13 +73,9 @@ public class AlarmController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
 
-        try {
-            Long receiver = Long.parseLong(claims.getSubject());
-            List<AlarmDTO> list = alarmService.alarmList(receiver);
-            return ResponseEntity.ok(list);
-        } catch (NumberFormatException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("올바르지 않은 사용자 ID 형식입니다.");
-        }
+        Long receiver = Long.parseLong(claims.getSubject());
+        List<AlarmDTO> list = alarmService.alarmList(receiver);
+        return ResponseEntity.ok(list);
     }
 
     @PostMapping("/read")
@@ -72,7 +88,11 @@ public class AlarmController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
 
-        int result = alarmService.alarmRead(alarmId);
+        Long receiver = Long.parseLong(claims.getSubject());
+        int result = alarmService.alarmRead(alarmId, receiver);
+        if (result == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("알림을 찾을 수 없습니다.");
+        }
         return ResponseEntity.ok(result);
     }
 
@@ -85,12 +105,8 @@ public class AlarmController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
 
-        try {
-            Long receiver = Long.parseLong(claims.getSubject());
-            int result = alarmService.readAllAlarms(receiver);
-            return ResponseEntity.ok(result);
-        } catch (NumberFormatException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("올바르지 않은 사용자 ID 형식입니다.");
-        }
+        Long receiver = Long.parseLong(claims.getSubject());
+        int result = alarmService.readAllAlarms(receiver);
+        return ResponseEntity.ok(result);
     }
 }

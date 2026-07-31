@@ -65,7 +65,7 @@ public class SettleScheduler {
     @Scheduled(cron = "0 15 0 * * *")
     public void scheduleNewExpenseContractCheck() {
         try {
-            int count = settleService.checkNewlyExpenseContracts();
+            int count = settleService.checkNewlySignedExpenseContracts();
             log.info("[신규 지출 정산 대기 알림] {}건 발송 완료", count);
         } catch (Exception e) {
             log.error("[신규 지출 정산 대기 알림 실패] 에러: {}", e.getMessage(), e);
@@ -79,12 +79,7 @@ public class SettleScheduler {
             String prevMonthStr = String.format("%d-%02d", prevMonth.getYear(), prevMonth.getMonthValue());
             int prevCount = settleService.generateMonthlyCommissions(prevMonth);
 
-            LocalDate currentMonth = LocalDate.now();
-            String currentMonthStr = String.format("%d-%02d", currentMonth.getYear(), currentMonth.getMonthValue());
-            int currentCount = settleService.generateMonthlyCommissions(currentMonth);
-
-            log.info("[서버기동정산 완료] 전월({}): {}건 / 당월({}): {}건이 생성/업데이트 되었습니다.",
-                    prevMonthStr, prevCount, currentMonthStr, currentCount);
+            log.info("[서버기동정산 완료] 전월({}): {}건이 생성/업데이트 되었습니다.", prevMonthStr, prevCount);
         } catch (Exception e) {
             log.error("[서버기동정산 실패] 에러: {}", e.getMessage(), e);
         }

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import './Itempage.css';
 import { useSearchParams } from 'react-router-dom';
 import Pagination from './Pagination';
+import { fetchWithToken } from '../utils/fetchWithToken'; // 공통 fetch 래퍼
 
 const ITEM_CATEGORY_CHIPS = [
   { value: '', label: '전체' },
@@ -58,9 +59,6 @@ function Itempage() {
   const [sortOption, setSortOption] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
-  const token = localStorage.getItem('accessToken');
-  const authHeaders = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
-
   const abortControllerRef = useRef(null);
 
   const cancelPendingRequests = () => {
@@ -78,6 +76,7 @@ function Itempage() {
     setSearchParams(next);
   };
 
+  // 1. 물품 목록 조회 (fetchWithToken 연동)
   const fetchItems = useCallback(async (targetPage, keyword, sort, category) => {
     cancelPendingRequests();
     const controller = new AbortController();
@@ -92,10 +91,12 @@ function Itempage() {
         sort: sort || '',
         category: category || ''
       });
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/list?${query.toString()}`, {
-        headers: authHeaders,
-        signal: controller.signal,
-      });
+
+      const response = await fetchWithToken(
+        `${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/list?${query.toString()}`,
+        { signal: controller.signal }
+      );
+
       if (response.ok) {
         const data = await response.json();
         setItems(data.items || []);
@@ -108,18 +109,19 @@ function Itempage() {
     } finally {
       setLoading(false);
     }
-  }, [authHeaders]);
+  }, []);
 
+  // 2. 전체 품목명 목록 조회
   const fetchItemNames = useCallback(async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/names`, { headers: authHeaders });
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/names`);
       if (response.ok) {
         setItemNames(await response.json());
       }
     } catch (error) {
       console.error('Failed to fetch item names:', error);
     }
-  }, [authHeaders]);
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -128,14 +130,18 @@ function Itempage() {
     fetchItems(1, '', sortOption, '');
     fetchItemNames();
     return () => cancelPendingRequests();
-  }, [token, sortOption, fetchItems, fetchItemNames]);
+  }, [sortOption, fetchItems, fetchItemNames]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
       fetchItems(1, searchTerm, sortOption, categoryFilter);
     }, 300);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      cancelPendingRequests();
+    };
   }, [searchTerm, sortOption, categoryFilter, fetchItems]);
 
   const handlePageChange = (targetPage) => {
@@ -164,17 +170,18 @@ function Itempage() {
     return str;
   };
 
+  // 3. CSV 내보내기
   const handleExportCsv = async () => {
     try {
       const query = new URLSearchParams({ keyword: searchTerm || '', category: categoryFilter || '' });
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/export?${query.toString()}`, { headers: authHeaders });
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/export?${query.toString()}`);
       if (!response.ok) {
         alert('내보내기에 실패했습니다.');
         return;
       }
 
       const allItems = await response.json();
-      if (allItems.length === 0) {
+      if (!allItems || allItems.length === 0) {
         alert('내보낼 물품이 없습니다.');
         return;
       }
@@ -201,6 +208,7 @@ function Itempage() {
   const currentMonthKey = useMemo(() => new Date().toISOString().split('T')[0].substring(0, 7), []);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState(currentMonthKey);
 
+  // 4. 상세 내역 조회
   const handleItemClick = async (item) => {
     setSelectedItem(item);
     setDetailList([]);
@@ -210,7 +218,7 @@ function Itempage() {
         itemName: item.itemName,
         itemCategory: item.itemCategory,
       });
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/detail?${detailQuery.toString()}`, { headers: authHeaders });
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/detail?${detailQuery.toString()}`);
       if (response.ok) {
         setDetailList(await response.json());
       }
@@ -231,6 +239,7 @@ function Itempage() {
     });
   };
 
+  // 5. 물품 정보 수정
   const handleEditSubmit = async (e) => {
     e.preventDefault();
 
@@ -258,12 +267,8 @@ function Itempage() {
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/update`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/update`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeaders
-        },
         body: JSON.stringify(updatedItem)
       });
 
@@ -282,6 +287,7 @@ function Itempage() {
     }
   };
 
+  // 6. 물품 삭제
   const handleDeleteClick = async (item) => {
     if (!window.confirm('정말로 이 물품 항목을 삭제하시겠습니까?')) {
       return;
@@ -293,12 +299,8 @@ function Itempage() {
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/delete`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/delete`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeaders
-        },
         body: JSON.stringify(payload)
       });
 
@@ -399,6 +401,7 @@ function Itempage() {
     });
   };
 
+  // 7. 신규 물품 등록
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
@@ -432,12 +435,8 @@ function Itempage() {
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/add`, {
+      const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/fitb/itempage/add`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeaders
-        },
         body: JSON.stringify(newItem)
       });
 

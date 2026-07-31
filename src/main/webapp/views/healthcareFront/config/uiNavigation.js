@@ -1,3 +1,6 @@
+/**
+ * B2B 시스템 사용자 역할 라벨 정의
+ */
 export const ROLE_LABEL = {
   admin: '관리자',
   owner: '사장님',
@@ -5,12 +8,16 @@ export const ROLE_LABEL = {
   member: '회원',
 };
 
+/** B2B 대시보드 접근 권한 역할 목록 */
 export const B2B_ROLES = ['admin', 'owner', 'trainer'];
 
+/** 역할 문자열 정규화 (소문자 및 좌우 공백 제거) */
 export const normalizeRole = (role) => String(role || '').toLowerCase().trim();
 
+/** 지점 소속 역할(사장/트레이너) 여부 판별 */
 export const isGymRole = (role) => ['owner', 'trainer'].includes(normalizeRole(role));
 
+/** GNB/LNB 메인 네비게이션 목록 기본 원본 */
 export const B2B_PRIMARY_NAV = [
   { id: 'home', label: '홈', to: '/fitb', icon: 'H', end: true },
   { id: 'dashboard', label: '대시보드', to: '/fitb/dashboard', icon: 'D' },
@@ -21,11 +28,26 @@ export const B2B_PRIMARY_NAV = [
   { id: 'item', label: '물품', to: '/fitb/itempage', icon: 'I' },
 ];
 
+/**
+ * 역할별 GNB 메뉴 필터링 헬퍼
+ * @param {string} role - 사용자 역할
+ */
+export const getB2bPrimaryNav = (role) => {
+  const normRole = normalizeRole(role);
+  if (normRole === 'admin') {
+    // 총괄 관리자는 지점 물리 재고(물품) 메뉴 제외
+    return B2B_PRIMARY_NAV.filter((nav) => nav.id !== 'item');
+  }
+  return B2B_PRIMARY_NAV;
+};
+
+/** 물품 관리 서브 네비게이션 */
 export const ITEM_SUB_NAV = [
   { id: 'item-list', label: '물품 목록', to: '/fitb/itempage', view: 'list' },
   { id: 'item-form', label: '물품 등록', to: '/fitb/itempage?view=form', view: 'form' },
 ];
 
+/** 공통 코어 홈 액션 카드 */
 const CORE_HOME_ACTIONS = [
   {
     id: 'dashboard',
@@ -61,6 +83,7 @@ const CORE_HOME_ACTIONS = [
   },
 ];
 
+/** 역할별 맞춤 홈 액션 카드 */
 const ROLE_HOME_ACTIONS = {
   admin: [
     {
@@ -120,6 +143,10 @@ const ROLE_HOME_ACTIONS = {
   ],
 };
 
+/**
+ * 사용자 역할에 따른 메인 홈 액션 리스트 반환 함수
+ * @param {string} role - 사용자 역할
+ */
 export const getB2bHomeActions = (role) => {
   const normRole = normalizeRole(role);
   const core = normRole === 'admin'
@@ -130,12 +157,14 @@ export const getB2bHomeActions = (role) => {
   return [...core, ...roleActions];
 };
 
+/** 페이지 URL 경로 매칭용 타이틀 매핑 규칙 */
 const PAGE_TITLE_RULES = [
   { test: /^\/fitb\/dashboard/, label: '대시보드' },
+  { test: /^\/fitb\/report/, label: '헬스장 이탈 리포트' },
   { test: /^\/fitb\/b2bmanagement/, label: '회원 · 직원 관리' },
   { test: /^\/fitb\/ownermanagement/, label: '회원 관리' },
   { test: /^\/fitb\/contractpage/, label: '계약 관리' },
-  { test: /^\/fitb\/contract\//, label: '계약 관리' },
+  { test: /^\/fitb\/contract\//, label: '계약 상세' },
   { test: /^\/fitb\/payment\//, label: '결제' },
   { test: /^\/fitb\/Settlepage/, label: '정산 · 매출' },
   { test: /^\/fitb\/itempage/, label: '물품 관리' },
@@ -145,6 +174,11 @@ const PAGE_TITLE_RULES = [
   { test: /^\/fitb\/?$/, label: 'Home' },
 ];
 
-export const getB2bPageTitle = (pathname) => (
-  PAGE_TITLE_RULES.find(({ test }) => test.test(pathname || ''))?.label || '관리'
-);
+/**
+ * 현재 Location Pathname을 바탕으로 서브 헤더용 페이지 타이틀 반환
+ * @param {string} pathname - window.location.pathname 또는 useLocation().pathname
+ */
+export const getB2bPageTitle = (pathname) => {
+  const cleanPath = String(pathname || '').split('?')[0].split('#')[0];
+  return PAGE_TITLE_RULES.find(({ test }) => test.test(cleanPath))?.label || '관리';
+};

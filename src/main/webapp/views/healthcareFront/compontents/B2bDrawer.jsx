@@ -3,16 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import AiChat from '../ai/AiChat.jsx';
 import { FactorDetailLoader, RiskMembersPanel } from '../report/Report.jsx';
 import NavIcon from './uiIcons.jsx';
+import { fetchWithToken } from '../utils/fetchWithToken.js'; // 공통 fetch 래퍼 유틸리티
 import './B2bDrawer.css';
-
-// 우측 통합 드로어 (추가 동선) - 리스트 행 클릭 시 'b2b-drawer-open' 커스텀 이벤트로 탭이 쌓인다.
-// detail = { kind: 'contract'|'settle'|'expense'|'item'|'ai', id, title, data? }
-// 같은 kind+id 탭은 중복 생성 없이 활성화만 전환. 바깥 클릭 = 접힘(탭 보존), ✕ = 전체 닫기.
-// AI 비서(2026-07-21 기획서)도 같은 드로어의 한 탭으로 편입되며, 탭 상태는 'b2b-drawer-state'로 방송한다.
 
 const CONTRACT_LABEL = { 1: '제휴', 2: '임금', 3: '이용권', 4: 'PT', 5: 'PT 체험' };
 
-// 상태 pill 배지 톤 (미지원 값은 issued 톤으로 폴백)
+// 상태 pill 배지 톤
 const STATUS_BADGE = {
   ACTIVE: 'b2b-drawer__badge--active',
   SIGNED: 'b2b-drawer__badge--signed',
@@ -20,9 +16,7 @@ const STATUS_BADGE = {
   TERMINATED: 'b2b-drawer__badge--terminated',
 };
 
-// settle/item 탭에는 하단 이동 버튼을 두지 않는다 — 드로어를 연 페이지와 목적지가 같아 이동 의미가 없음
-
-// 값 포맷터: null 반환 = 해당 행 생략
+// 값 포맷터
 const won = (value) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(value);
 const fmtId = (value) => `#${value}`;
 const fmtWon = (value) => won(value);
@@ -30,8 +24,7 @@ const fmtDiscount = (value) => (value > 0 ? `−${won(value)}` : null);
 const fmtInstallment = (value) => (Number(value) === 0 ? '일시불' : `${value}개월 할부`);
 const fmtRate = (value) => (Number(value) > 0 ? `${(Number(value) * 100).toFixed(0)}%` : null);
 
-// kind별 표시 필드 메타 — 이 순서대로 렌더하며 응답 키 순서에 의존하지 않는다.
-// tone: 'strong'(금액 강조) | 'danger'(지출·할인), hidden: 화면에 의미 없는 내부 키(라벨 없이 노출 방지)
+// kind별 표시 필드 메타
 const DATA_FIELDS = {
   settle: {
     fields: [
@@ -75,7 +68,6 @@ const DATA_FIELDS = {
   },
 };
 
-// 메타 순서대로 정리한 뒤, 메타에 없는 키는 원시 키 그대로 뒤에 붙인다(DTO 필드 추가 시 누락 방지)
 const buildRows = (kind, data) => {
   const source = data || {};
   const meta = DATA_FIELDS[kind] ?? { fields: [], hidden: [] };
@@ -103,11 +95,10 @@ const DEFAULT_WIDTH = 440;
 const MIN_WIDTH = 360;
 const LNB_WIDTH = 248;
 
-// 최대 폭: LNB(248px)를 덮지 않는 범위 안에서 1080px까지
 const getMaxWidth = () => Math.min(1080, window.innerWidth - LNB_WIDTH - 48);
 const clampWidth = (w) => Math.max(MIN_WIDTH, Math.min(getMaxWidth(), w));
 
-// kind='contract' 탭 본문: 마운트 시 계약 상세를 조회해 라벨/값 2열로 표시
+// kind='contract' 탭 본문 (fetchWithToken 적용)
 function ContractTabContent({ id, onOpenPage }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState('');
@@ -118,25 +109,21 @@ function ContractTabContent({ id, onOpenPage }) {
       setDetail(null);
       setError('');
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contract/detail/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetchWithToken(`${import.meta.env.VITE_BACKEND_URL}/contract/detail/${id}`);
         if (!response.ok) {
-          if (!ignore) setError(`상세를 불러올 수 없습니다(${response.status})`);
+          if (!ignore) setError(`상세를 불러올 수 없습니다 (${response.status})`);
           return;
         }
         const data = await response.json();
         if (!ignore) setDetail(data);
       } catch {
-        if (!ignore) setError('상세를 불러올 수 없습니다(통신 오류)');
+        if (!ignore) setError('상세를 불러올 수 없습니다 (통신 오류)');
       }
     };
     load();
     return () => { ignore = true; };
   }, [id]);
 
-  // 제휴(1)는 amount가 없어 수수료율(contractRate)을 % 표시
   const amountText = detail
     ? (detail.contract === 1
       ? (detail.contractRate != null ? `${detail.contractRate}%` : '-')
@@ -152,7 +139,7 @@ function ContractTabContent({ id, onOpenPage }) {
           <p className="b2b-drawer__message">불러오는 중...</p>
         ) : (
           <dl className="b2b-drawer__list">
-            <div className="b2b-drawer__row"><dt>계약 ID</dt><dd>{detail.dataId}</dd></div>
+            <div className="b2b-drawer__row"><dt>계약 ID</dt><dd>#{detail.dataId}</dd></div>
             <div className="b2b-drawer__row"><dt>계약 유형</dt><dd>{CONTRACT_LABEL[detail.contract] ?? detail.contract}</dd></div>
             <div className="b2b-drawer__row"><dt>이름</dt><dd>{detail.member?.name ?? detail.receiverName ?? '-'}</dd></div>
             <div className="b2b-drawer__row">
@@ -183,7 +170,7 @@ function ContractTabContent({ id, onOpenPage }) {
   );
 }
 
-// kind='settle'/'expense'/'item' 탭 본문: 이벤트로 전달된 행 객체를 한글 라벨 2열로 표시
+// kind='settle'/'expense'/'item' 탭 본문
 function DataTabContent({ kind, data }) {
   const rows = buildRows(kind, data);
 
@@ -207,9 +194,9 @@ function DataTabContent({ kind, data }) {
 
 function B2bDrawer() {
   const navigate = useNavigate();
-  const [tabs, setTabs] = useState([]); // { key, kind, id, title, data }
+  const [tabs, setTabs] = useState([]);
   const [activeKey, setActiveKey] = useState(null);
-  const [collapsed, setCollapsed] = useState(false); // 접힘(탭 상태는 보존)
+  const [collapsed, setCollapsed] = useState(false);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -219,7 +206,16 @@ function B2bDrawer() {
   const dropdownRef = useRef(null);
   const dragRef = useRef(null);
 
-  // 'b2b-drawer-open' 수신: 같은 kind+id면 활성화만, 새 탭이면 끝에 추가 + 활성화 + 펼침
+  // 창 크기 조절 시 폭 리사이징 대응
+  useEffect(() => {
+    const handleWindowResize = () => {
+      setWidth((prev) => clampWidth(prev));
+    };
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
+
+  // 'b2b-drawer-open' 커스텀 이벤트 수신
   useEffect(() => {
     const onOpen = (event) => {
       const { kind, id, title, data } = event.detail || {};
@@ -236,7 +232,7 @@ function B2bDrawer() {
     return () => window.removeEventListener('b2b-drawer-open', onOpen);
   }, []);
 
-  // 바깥 클릭 = 접힘(탭 보존). 드로어 내부 클릭은 무시하되 드롭다운 밖이면 드롭다운만 닫음
+  // 바깥 클릭 시 접기
   useEffect(() => {
     const onDocMouseDown = (event) => {
       if (rootRef.current && rootRef.current.contains(event.target)) {
@@ -252,7 +248,7 @@ function B2bDrawer() {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, []);
 
-  // 드로어 상태 방송 - AI 입력바 노출 규칙(AI 탭 활성 + 펼침일 때만 숨김)에 사용
+  // 드로어 상태 전파
   useEffect(() => {
     const activeKind = tabs.find((tab) => tab.key === activeKey)?.kind ?? null;
     window.dispatchEvent(new CustomEvent('b2b-drawer-state', {
@@ -260,13 +256,11 @@ function B2bDrawer() {
     }));
   }, [tabs, activeKey, collapsed]);
 
-  // 탭바 오버플로우 감지 → 넘칠 때만 드롭다운(∨) 버튼 노출
   useLayoutEffect(() => {
     const el = tabListRef.current;
     setHasOverflow(el ? el.scrollWidth > el.clientWidth + 1 : false);
   }, [tabs, width, collapsed]);
 
-  // 좌측 가장자리 핸들 드래그로 폭 조절 (min 360 / max = LNB 미침범 범위)
   const handleResizeStart = (event) => {
     event.preventDefault();
     dragRef.current = { startX: event.clientX, startWidth: width };
@@ -283,7 +277,6 @@ function B2bDrawer() {
     document.addEventListener('mouseup', onUp);
   };
 
-  // 개별 탭 닫기: 활성 탭이 닫히면 인접 탭 활성화, 마지막 탭이 닫히면 드로어 닫힘
   const closeTab = (key) => {
     setDropdownOpen(false);
     const index = tabs.findIndex((tab) => tab.key === key);
@@ -296,7 +289,6 @@ function B2bDrawer() {
     setTabs(next);
   };
 
-  // ✕ = 모든 탭 제거 + 드로어 닫기
   const closeAll = () => {
     setTabs([]);
     setActiveKey(null);
@@ -304,7 +296,6 @@ function B2bDrawer() {
     setCollapsed(false);
   };
 
-  // 하단 버튼: 해당 페이지로 이동 + 드로어 접기(탭 보존)
   const openPage = (path) => {
     setCollapsed(true);
     setDropdownOpen(false);
@@ -317,11 +308,9 @@ function B2bDrawer() {
     <aside
       ref={rootRef}
       className="b2b-drawer"
-      // 접힘은 인라인 style로 처리해 CSS 파일과 무관하게 동작 (탭 컴포넌트는 마운트 유지 → 재펼침 시 복원)
       style={{ width: `${width}px`, display: collapsed ? 'none' : undefined }}
       aria-label="통합 드로어"
     >
-      {/* 좌측 크기 조절 핸들 */}
       <div
         className="b2b-drawer__resize-handle"
         onMouseDown={handleResizeStart}
@@ -333,7 +322,6 @@ function B2bDrawer() {
       </div>
 
       <div className="b2b-drawer__inner">
-        {/* 탭바: 가로 스크롤(스크롤바 숨김) + 오버플로우 시 ∨ 드롭다운 + 전체 닫기 ✕ */}
         <div className="b2b-drawer__tabbar">
           <div className="b2b-drawer__tabs" ref={tabListRef} role="tablist">
             {tabs.map((tab) => (
@@ -397,7 +385,6 @@ function B2bDrawer() {
           </button>
         </div>
 
-        {/* 본문: 탭별 콘텐츠 (비활성 탭은 인라인 display:none으로 마운트 유지 → 재조회 없이 전환) */}
         <div className="b2b-drawer__body">
           {tabs.map((tab) => (
             <div

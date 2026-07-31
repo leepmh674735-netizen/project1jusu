@@ -1,11 +1,16 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { fetchWithToken } from '../utils/fetchWithToken'; // 공통 fetch 래퍼 유틸리티
 
-// 이탈율(0~1)에 따른 색상 (B2bList와 동일 기준)
-const churnColor = (rate) => (rate >= 0.5 ? '#c62828' : rate >= 0.25 ? '#ef6c00' : '#2e7d32');
+// 이탈율(0~1)에 따른 색상 매핑
+const churnColor = (rate) => {
+  const r = Number(rate) || 0;
+  return r >= 0.5 ? '#c62828' : r >= 0.25 ? '#ef6c00' : '#2e7d32';
+};
 
 function B2bCoupon() {
   const navigate = useNavigate();
+  const abortControllerRef = useRef(null);
 
   // localStorage 예외 처리
   const getUserData = () => {
@@ -28,21 +33,22 @@ function B2bCoupon() {
 
   const [selected, setSelected] = useState(() => new Set()); // 선택된 회원 username Set
 
-  // 이탈율 높은 순 회원 명단 조회
-  const fetchMembersByChurn = useCallback(async () => {
+  const cancelPendingRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
+  // 이탈율 높은 순 회원 명단 조회 (fetchWithToken 연동)
+  const fetchMembersByChurn = useCallback(async (signal) => {
     if (!gymId) return;
 
-    const token = localStorage.getItem('accessToken');
     setLoading(true);
 
     try {
-      const response = await fetch(
+      const response = await fetchWithToken(
         `${import.meta.env.VITE_BACKEND_URL}/result/members/byChurn?gymId=${gymId}`,
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : '',
-          },
-        }
+        { signal }
       );
 
       if (response.ok) {
@@ -53,15 +59,23 @@ function B2bCoupon() {
         setMembers([]);
       }
     } catch (e) {
-      console.error('회원 명단 조회 실패:', e);
-      setMembers([]);
+      if (e.name !== 'AbortError') {
+        console.error('회원 명단 조회 실패:', e);
+        setMembers([]);
+      }
     } finally {
       setLoading(false);
     }
   }, [gymId]);
 
   useEffect(() => {
-    fetchMembersByChurn();
+    cancelPendingRequest();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    fetchMembersByChurn(controller.signal);
+
+    return () => cancelPendingRequest();
   }, [fetchMembersByChurn]);
 
   // 탭/입력값이 바뀌면 기준에 맞춰 자동 선택
@@ -76,7 +90,7 @@ function B2bCoupon() {
       picked = members.slice(0, n).map((m) => m.username);
     } else {
       const th = (Number(rateThreshold) || 0) / 100;
-      picked = members.filter((m) => m.churnRate >= th).map((m) => m.username);
+      picked = members.filter((m) => (Number(m.churnRate) || 0) >= th).map((m) => m.username);
     }
     setSelected(new Set(picked));
   }, [members, mode, countN, rateThreshold]);
@@ -93,21 +107,20 @@ function B2bCoupon() {
 
   // 전체 선택 / 전체 해제
   const toggleSelectAll = () => {
-    if (selected.size === members.length) {
+    if (selected.size === members.length && members.length > 0) {
       setSelected(new Set());
     } else {
       setSelected(new Set(members.map((m) => m.username)));
     }
   };
 
-  // 선택된 회원에게 쿠폰 발송 페이지/모달로 연동
+  // 선택된 회원에게 쿠폰 발송 페이지로 연동
   const handleProceedCoupon = () => {
     if (selected.size === 0) {
       alert('쿠폰을 발송할 회원을 1명 이상 선택해 주세요.');
       return;
     }
     const targetUsernames = Array.from(selected);
-    // 프로모션 발행 페이지로 전달하거나 백엔드 발송 API 호출
     navigate('/fitb/promotion', { state: { targetUsernames } });
   };
 
@@ -115,11 +128,16 @@ function B2bCoupon() {
   const avgSelectedChurn = useMemo(() => {
     const picked = members.filter((m) => selected.has(m.username));
     if (picked.length === 0) return null;
-    return picked.reduce((s, m) => s + m.churnRate, 0) / picked.length;
+    const totalChurn = picked.reduce((s, m) => s + (Number(m.churnRate) || 0), 0);
+    return totalChurn / picked.length;
   }, [members, selected]);
 
   if (!gymId) {
-    return <div style={{ padding: '20px' }}>로그인한 사장님의 헬스장 정보를 찾을 수 없습니다.</div>;
+    return (
+      <div style={{ padding: '20px', color: '#666' }}>
+        로그인한 사장님의 헬스장 정보를 찾을 수 없습니다.
+      </div>
+    );
   }
 
   const tabBtn = (m, label) => (
@@ -244,6 +262,7 @@ function B2bCoupon() {
             <tbody>
               {members.map((m, i) => {
                 const checked = selected.has(m.username);
+                const rateNum = Number(m.churnRate) || 0;
                 return (
                   <tr
                     key={m.username}
@@ -260,10 +279,10 @@ function B2bCoupon() {
                       />
                     </td>
                     <td style={{ padding: '6px 8px', textAlign: 'center', color: '#999' }}>{i + 1}</td>
-                    <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{m.name}</td>
+                    <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{m.name || '-'}</td>
                     <td style={{ padding: '6px 8px', color: '#666' }}>{m.username}</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', color: churnColor(m.churnRate) }}>
-                      {(m.churnRate * 100).toFixed(1)}%
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', color: churnColor(rateNum) }}>
+                      {(rateNum * 100).toFixed(1)}%
                     </td>
                   </tr>
                 );
